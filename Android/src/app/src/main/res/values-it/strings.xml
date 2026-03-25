@@ -200,6 +200,22 @@
   <string name="mobile_actions_challenge_email_colab">Inviami la guida per e-mail</string>
   <string name="mobile_actions_challenge_load_model">Carica modello</string>
 
+  <!-- Insurance Card Scanner -->
+  <string name="insurance_task_label">Scanner tessera assicurativa</string>
+  <string name="insurance_task_description">Scansiona le tessere assicurative svizzere ed estrai dati strutturati</string>
+  <string name="insurance_capture">Cattura</string>
+  <string name="insurance_scanning">Scansione\u2026</string>
+  <string name="insurance_analyzing">Analisi\u2026</string>
+  <string name="insurance_retake">Ripeti</string>
+  <string name="insurance_camera_permission">L\'autorizzazione della fotocamera è necessaria per scansionare le tessere assicurative. Concedi l\'accesso per continuare.</string>
+  <string name="insurance_field_name">Cognome</string>
+  <string name="insurance_field_vorname">Nome</string>
+  <string name="insurance_field_geburtsdatum">Data di nascita</string>
+  <string name="insurance_field_versichertennummer">Numero assicurato</string>
+  <string name="insurance_field_ahv_nummer">Numero AVS</string>
+  <string name="insurance_field_versicherer">Assicuratore</string>
+  <string name="insurance_field_kartennummer">Numero tessera</string>
+
   <!-- The following entries are for accessibility -->
   <string name="cd_import_model_button">Importa modello</string>
   <string name="cd_task_card">Attività %1$s con %2$d modelli</string>
@@ -248,5 +264,11 @@
   <string name="cd_more_options">Altre opzioni</string>
   <string name="cd_help">Aiuto</string>
   <string name="cd_menu">Menu</string>
+
+  <!-- Emoji Generator -->
+  <string name="emoji_task_label">Generatore di emoji</string>
+  <string name="emoji_task_description">Genera emoji contestuali dal testo in tempo reale</string>
+  <string name="emoji_input_hint">Inserisci testo per ottenere emoji</string>
+  <string name="emoji_loading">Generazione in corso…</string>
 
 </resources>

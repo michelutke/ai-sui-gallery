@@ -200,6 +200,22 @@
   <string name="mobile_actions_challenge_email_colab">Anleitung an mich senden</string>
   <string name="mobile_actions_challenge_load_model">Modell laden</string>
 
+  <!-- Insurance Card Scanner -->
+  <string name="insurance_task_label">Versicherungskarten-Scanner</string>
+  <string name="insurance_task_description">Schweizer Versicherungskarten scannen und strukturierte Daten extrahieren</string>
+  <string name="insurance_capture">Aufnehmen</string>
+  <string name="insurance_scanning">Wird gescannt\u2026</string>
+  <string name="insurance_analyzing">Wird analysiert\u2026</string>
+  <string name="insurance_retake">Wiederholen</string>
+  <string name="insurance_camera_permission">Kameraberechtigung ist erforderlich, um Versicherungskarten zu scannen. Bitte erteilen Sie die Berechtigung.</string>
+  <string name="insurance_field_name">Name</string>
+  <string name="insurance_field_vorname">Vorname</string>
+  <string name="insurance_field_geburtsdatum">Geburtsdatum</string>
+  <string name="insurance_field_versichertennummer">Versichertennummer</string>
+  <string name="insurance_field_ahv_nummer">AHV-Nummer</string>
+  <string name="insurance_field_versicherer">Versicherer</string>
+  <string name="insurance_field_kartennummer">Kartennummer</string>
+
   <!-- The following entries are for accessibility -->
   <string name="cd_import_model_button">Modell importieren</string>
   <string name="cd_task_card">%1$s-Aufgabe mit %2$d Modellen</string>
@@ -248,5 +264,11 @@
   <string name="cd_more_options">Weitere Optionen</string>
   <string name="cd_help">Hilfe</string>
   <string name="cd_menu">Menü</string>
+
+  <!-- Emoji Generator -->
+  <string name="emoji_task_label">Emoji-Generator</string>
+  <string name="emoji_task_description">Kontextbezogene Emojis aus Text in Echtzeit generieren</string>
+  <string name="emoji_input_hint">Text eingeben, um Emoji zu erhalten</string>
+  <string name="emoji_loading">Wird generiert…</string>
 
 </resources>

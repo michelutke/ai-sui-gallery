@@ -200,6 +200,22 @@
   <string name="mobile_actions_challenge_email_colab">M\'envoyer le guide par e-mail</string>
   <string name="mobile_actions_challenge_load_model">Charger le modèle</string>
 
+  <!-- Insurance Card Scanner -->
+  <string name="insurance_task_label">Scanner de carte d\'assurance</string>
+  <string name="insurance_task_description">Scanner les cartes d\'assurance suisses et extraire les données structurées</string>
+  <string name="insurance_capture">Capturer</string>
+  <string name="insurance_scanning">Numérisation\u2026</string>
+  <string name="insurance_analyzing">Analyse\u2026</string>
+  <string name="insurance_retake">Reprendre</string>
+  <string name="insurance_camera_permission">L\'autorisation de la caméra est requise pour scanner les cartes d\'assurance. Veuillez accorder l\'accès.</string>
+  <string name="insurance_field_name">Nom</string>
+  <string name="insurance_field_vorname">Prénom</string>
+  <string name="insurance_field_geburtsdatum">Date de naissance</string>
+  <string name="insurance_field_versichertennummer">Numéro d\'assuré</string>
+  <string name="insurance_field_ahv_nummer">Numéro AVS</string>
+  <string name="insurance_field_versicherer">Assureur</string>
+  <string name="insurance_field_kartennummer">Numéro de carte</string>
+
   <!-- The following entries are for accessibility -->
   <string name="cd_import_model_button">Importer un modèle</string>
   <string name="cd_task_card">Tâche %1$s avec %2$d modèles</string>
@@ -248,5 +264,11 @@
   <string name="cd_more_options">Plus d\'options</string>
   <string name="cd_help">Aide</string>
   <string name="cd_menu">Menu</string>
+
+  <!-- Emoji Generator -->
+  <string name="emoji_task_label">Générateur d\'émojis</string>
+  <string name="emoji_task_description">Générer des émojis contextuels à partir de texte en temps réel</string>
+  <string name="emoji_input_hint">Entrez du texte pour obtenir un émoji</string>
+  <string name="emoji_loading">Génération en cours…</string>
 
 </resources>
