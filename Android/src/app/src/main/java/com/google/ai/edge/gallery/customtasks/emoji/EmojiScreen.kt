@@ -38,11 +38,8 @@ import kotlinx.coroutines.flow.filter
 
 private const val DEBOUNCE_MS = 500L
 
-private const val FEW_SHOT_PROMPT =
-  "Text: I love you\nEmoji: \u2764\uFE0F\n" +
-    "Text: It's cold\nEmoji: \uD83E\uDD76\n" +
-    "Text: I'm happy\nEmoji: \uD83D\uDE00\n" +
-    "Text: "
+private const val PROMPT_PREFIX = "Text: "
+private const val PROMPT_SUFFIX = "\nEmoji:"
 
 @OptIn(FlowPreview::class)
 @Composable
@@ -82,9 +79,17 @@ fun EmojiScreen(
       .collect { text ->
         isLoading = true
         try {
-          // Reset conversation before each query to keep context clean.
-          LlmChatModelHelper.resetConversation(model = model)
-          val prompt = FEW_SHOT_PROMPT + text + "\nEmoji: "
+          // Reset conversation before each query so system prompt is fresh.
+          LlmChatModelHelper.resetConversation(
+            model = model,
+            systemInstruction = com.google.ai.edge.litertlm.Contents.of(
+              listOf(com.google.ai.edge.litertlm.Content.Text(
+                "You are an emoji assistant. When given a text after 'Text:', respond with ONLY a single emoji on the 'Emoji:' line. " +
+                  "Examples:\nText: I love you\nEmoji: \u2764\uFE0F\nText: It's cold\nEmoji: \uD83E\uDD76\nText: I'm happy\nEmoji: \uD83D\uDE00"
+              ))
+            ),
+          )
+          val prompt = PROMPT_PREFIX + text + PROMPT_SUFFIX
           val accumulated = StringBuilder()
           LlmChatModelHelper.runInference(
             model = model,

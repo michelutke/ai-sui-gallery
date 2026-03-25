@@ -16,8 +16,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 
 private const val SYSTEM_PROMPT =
-  "You are an emoji assistant. Given a text, respond with a single emoji that best represents " +
-    "the meaning or emotion of the text. Respond with ONLY the emoji, nothing else."
+  "You are an emoji assistant. When given a text after 'Text:', respond with ONLY a single emoji on the 'Emoji:' line. " +
+    "Examples:\nText: I love you\nEmoji: \u2764\uFE0F\nText: It's cold\nEmoji: \uD83E\uDD76\nText: I'm happy\nEmoji: \uD83D\uDE00"
 
 class EmojiTask @Inject constructor() : CustomTask {
   override val task =
