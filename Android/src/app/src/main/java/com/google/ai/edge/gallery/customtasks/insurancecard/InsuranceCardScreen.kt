@@ -84,9 +84,9 @@ import org.json.JSONObject
 private const val TAG = "AGInsuranceCard"
 
 private const val LLM_PROMPT =
-  """Extract the following fields from this Swiss insurance card OCR text. Respond ONLY with valid JSON, no other text.
-Fields: name (last name), vorname (first name), geburtsdatum (date of birth), versichertennummer (insurance number), ahvNummer (AHV/social security number format: 756.XXXX.XXXX.XX), versicherer (insurance company), kartenNummer (card number)
-Text: """
+  """Extract fields from this Swiss insurance card OCR text. Reply with ONLY a short JSON object, no markdown, no explanation. Keep values short. If a field is not found, use empty string.
+Example output: {"name":"Muster","vorname":"Max","geburtsdatum":"01.01.1990","versichertennummer":"","ahvNummer":"756.1234.5678.90","versicherer":"CSS","kartenNummer":""}
+OCR text: """
 
 private enum class ScanState {
   CAMERA,
@@ -238,22 +238,29 @@ private fun InsuranceCardContent(
                   }
                   // LLM structuring
                   scanState = ScanState.LLM_PROCESSING
+                  // Reset conversation to avoid context buildup
+                  LlmChatModelHelper.resetConversation(model = model)
                   val llmAccumulator = StringBuilder()
+                  var resultHandled = false
                   LlmChatModelHelper.runInference(
                     model = model,
                     input = LLM_PROMPT + text,
                     resultListener = { partialResult, done ->
+                      if (resultHandled) return@runInference
                       llmAccumulator.append(partialResult)
-                      if (done) {
+                      // Try to parse early when we see closing brace
+                      val soFar = llmAccumulator.toString()
+                      val hasCompleteJson = soFar.contains("{") && soFar.contains("}")
+                      if (done || hasCompleteJson) {
+                        resultHandled = true
                         scope.launch {
-                          val fullResponse = llmAccumulator.toString()
-                          Log.d(TAG, "LLM response: $fullResponse")
-                          val result = parseResult(fullResponse)
+                          Log.d(TAG, "LLM response: $soFar")
+                          val result = parseResult(soFar)
                           if (result != null) {
                             cardResult = result
                             scanState = ScanState.RESULT
                           } else {
-                            errorMessage = "Could not parse LLM response.\n\nRaw: $fullResponse"
+                            errorMessage = "Could not parse LLM response.\n\nRaw: $soFar"
                             scanState = ScanState.ERROR
                           }
                         }
