@@ -243,9 +243,8 @@ private fun InsuranceCardContent(
                     model = model,
                     input = LLM_PROMPT + text,
                     resultListener = { partialResult, done ->
-                      if (!done) {
-                        llmAccumulator.append(partialResult)
-                      } else {
+                      llmAccumulator.append(partialResult)
+                      if (done) {
                         scope.launch {
                           val fullResponse = llmAccumulator.toString()
                           Log.d(TAG, "LLM response: $fullResponse")
@@ -254,7 +253,7 @@ private fun InsuranceCardContent(
                             cardResult = result
                             scanState = ScanState.RESULT
                           } else {
-                            errorMessage = "Could not parse LLM response."
+                            errorMessage = "Could not parse LLM response.\n\nRaw: $fullResponse"
                             scanState = ScanState.ERROR
                           }
                         }
