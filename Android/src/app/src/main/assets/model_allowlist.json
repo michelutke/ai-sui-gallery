@@ -7,7 +7,7 @@
       "description": "Preview version of [Gemma 3n E2B](https://ai.google.dev/gemma/docs/gemma-3n) ready for deployment on Android using the [MediaPipe LLM Inference API](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference). The current checkpoint only supports text and vision input, with 4096 context length.",
       "sizeInBytes": 3136226711,
       "estimatedPeakMemoryInBytes": 5905580032,
-      "version": "20250520",
+      "commitHash": "20250520",
       "llmSupportImage": true,
       "defaultConfig": {
         "topK": 64,
@@ -25,7 +25,7 @@
       "description": "Preview version of [Gemma 3n E4B](https://ai.google.dev/gemma/docs/gemma-3n) ready for deployment on Android using the [MediaPipe LLM Inference API](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference). The current checkpoint only supports text and vision input, with 4096 context length.",
       "sizeInBytes": 4405655031,
       "estimatedPeakMemoryInBytes": 6979321856,
-      "version": "20250520",
+      "commitHash": "20250520",
       "llmSupportImage": true,
       "defaultConfig": {
         "topK": 64,
@@ -43,7 +43,7 @@
       "description": "A variant of [google/Gemma-3-1B-IT](https://huggingface.co/google/Gemma-3-1B-IT) with 4-bit quantization ready for deployment on Android using the [MediaPipe LLM Inference API](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference)",
       "sizeInBytes": 554661246,
       "estimatedPeakMemoryInBytes": 2147483648,
-      "version": "20250514",
+      "commitHash": "20250514",
       "defaultConfig": {
         "topK": 64,
         "topP": 0.95,
@@ -60,7 +60,7 @@
       "description": "A variant of [Qwen/Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct) with 8-bit quantization ready for deployment on Android using the [MediaPipe LLM Inference API](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference)",
       "sizeInBytes": 1625493432,
       "estimatedPeakMemoryInBytes": 2684354560,
-      "version": "20250514",
+      "commitHash": "20250514",
       "defaultConfig": {
         "topK": 40,
         "topP": 0.95,
@@ -77,7 +77,7 @@
       "description": "A variant of [Qwen/Qwen3-0.6B](https://huggingface.co/Qwen/Qwen3-0.6B) ready for deployment on Android using [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md). Pre-trained on 36 trillion tokens across 119 languages including German, French, and Italian.",
       "sizeInBytes": 614236160,
       "estimatedPeakMemoryInBytes": 2147483648,
-      "version": "20260301",
+      "commitHash": "20260301",
       "defaultConfig": {
         "topK": 64,
         "topP": 0.95,
