@@ -1124,8 +1124,8 @@ constructor(
             } else if (indexB != -1) {
               1
             } else {
-              val ca = categoryMap[a.id]!!
-              val cb = categoryMap[b.id]!!
+              val ca = categoryMap[a.category.id] ?: a.category
+              val cb = categoryMap[b.category.id] ?: b.category
               val caLabel = getCategoryLabel(context = context, category = ca)
               val cbLabel = getCategoryLabel(context = context, category = cb)
               caLabel.compareTo(cbLabel)
