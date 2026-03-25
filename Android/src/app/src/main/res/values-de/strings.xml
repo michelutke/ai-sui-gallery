@@ -1,0 +1,252 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<resources>
+  <string name="all">Alle</string>
+  <string name="add">Hinzufügen</string>
+  <string name="add_audio">Audio hinzufügen</string>
+  <string name="add_image">Bild hinzufügen</string>
+  <string name="app_intro">Entdecke eine Welt erstaunlicher On-Device-Modelle von</string>
+  <string name="baseline">Ausgangswert</string>
+  <string name="basic_info">Grundlegende Informationen</string>
+  <string name="benchmark">Benchmark</string>
+  <string name="benchmark_comparison_help_title">So werden Benchmark-Läufe verglichen</string>
+  <string name="benchmark_comparison_help_content">Vergleiche Benchmark-Läufe, indem du auf den **Ausgangswert**-Chip einer beliebigen Ergebniskarte tippst, um diesen Lauf als Vergleichsbasis festzulegen. Die prozentualen Unterschiede werden dann in **allen anderen** Ergebniskarten automatisch berechnet und angezeigt.</string>
+  <string name="benchmark_model">Modell benchmarken</string>
+  <string name="benchmark_results">Benchmark-Ergebnisse</string>
+  <string name="benchmark_no_results">Keine Benchmark-Ergebnisse</string>
+  <string name="benchmark_tokens_limit_message">Stelle sicher, dass die Summe aus Prefill- und Decode-Tokens unter dem maximalen Token-Limit des Modells bleibt (%d vs. %d)</string>
+  <string name="best_overall">Insgesamt bestes Modell</string>
+  <string name="model_list_experimental_label">EXPERIMENTELL</string>
+  <string name="cancel">Abbrechen</string>
+  <string name="category_unlabeled">Ohne Bezeichnung</string>
+  <string name="category_agents">Agenten</string>
+  <string name="category_classical_ml">Klassisches ML</string>
+  <string name="category_experimental">Experimentell</string>
+  <string name="chat_textinput_placeholder">Nachricht eingeben…</string>
+  <string name="chat_you">Du</string>
+  <string name="checking_access">Zugriff wird geprüft...</string>
+  <string name="close">Schließen</string>
+  <string name="collapse_all">Alle einklappen</string>
+  <string name="discard">Verwerfen</string>
+  <string name="discard_changes_dialog_title">Änderungen verwerfen?</string>
+  <string name="discard_changes_dialog_content">Du hast nicht gespeicherte Änderungen. Möchtest du diese wirklich verwerfen?</string>
+  <string name="delete_benchmark_result_dialog_title">Benchmark-Ergebnis löschen</string>
+  <string name="delete_benchmark_result_dialog_content">Möchtest du das Benchmark-Ergebnis wirklich löschen?</string>
+  <string name="error">Fehler</string>
+  <string name="confirm_delete_model_dialog_title">Download löschen</string>
+  <string name="confirm_delete_model_dialog_content">Möchtest du das heruntergeladene Modell \"%s\" wirklich löschen?</string>
+  <string name="conversation_reset_message">Unterhaltung wurde zurückgesetzt</string>
+  <string name="engin_reset_message">Engine wurde zurückgesetzt</string>
+  <string name="chat_agent_agent_name">Agent</string>
+  <string name="chat_generic_agent_name">Modell</string>
+  <string name="chat_generic_result_name">Ergebnis</string>
+  <string name="clear">Leeren</string>
+  <string name="collect">Sammeln</string>
+  <string name="color">Farbe</string>
+  <string name="config_dialog_tab_model_configs">Modellkonfigurationen</string>
+  <string name="config_dialog_tab_system_prompt">System-Prompt</string>
+  <string name="continue_button_label">Weiter</string>
+  <string name="conversation_history">Gesprächsverlauf</string>
+  <string name="copy">Kopieren</string>
+  <string name="create">Erstellen</string>
+  <string name="delete">Löschen</string>
+  <string name="description_required">Beschreibung*</string>
+  <string name="deselect_all">Alle abwählen</string>
+  <string name="disabled">Deaktiviert</string>
+  <string name="dismiss">Schließen</string>
+  <string name="done">Fertig</string>
+  <string name="download">Herunterladen</string>
+  <string name="downloaded_size">%1$s heruntergeladen</string>
+  <string name="drawer_settings_label">Einstellungen</string>
+  <string name="drawer_settings_description">Anwendungseinstellungen verwalten</string>
+  <string name="drawer_models_label">Modelle</string>
+  <string name="drawer_models_description">Modelle durchsuchen, ausprobieren und benchmarken</string>
+  <string name="edit">Bearbeiten</string>
+  <string name="edit_secret">Geheimnis bearbeiten</string>
+  <string name="enter_instruction">Anweisung eingeben</string>
+  <string name="expand_all">Alle ausklappen</string>
+  <string name="failed_to_save">Speichern fehlgeschlagen</string>
+  <string name="flashlight_off_message">Ich habe die Taschenlampe ausgeschaltet.</string>
+  <string name="flashlight_on_message">Ich habe die Taschenlampe eingeschaltet.</string>
+  <string name="function_name">Funktionsname</string>
+  <string name="generate_and_copy">Generieren und kopieren</string>
+  <string name="grant_permissions">Berechtigungen erteilen</string>
+  <string name="grant_record_audio_permission">Berechtigung zur Audioaufnahme erteilen</string>
+  <string name="hold_down_to_talk">Gedrückt halten zum Sprechen</string>
+  <string name="input_history">Eingabeverlauf</string>
+  <string name="instructions">Anweisungen</string>
+  <string name="introducing">Neu:</string>
+  <string name="invalid_response">Ungültige Antwort</string>
+  <string name="learn_more">Mehr erfahren</string>
+  <string name="listening">Hört zu...</string>
+  <string name="loading_model_list">Modellliste wird geladen...</string>
+  <string name="memory_warning_content">Das ausgewählte Modell könnte den Arbeitsspeicher deines Geräts überschreiten, was zum Absturz der App führen kann. Für die beste Erfahrung empfehlen wir ein kleineres Modell.</string>
+  <string name="memory_warning_proceed_anyway">Trotzdem fortfahren</string>
+  <string name="memory_warning_title">Speicherwarnung</string>
+  <string name="model_is_initializing_msg">Modell wird initialisiert…</string>
+  <string name="model_list_imported_models_title">Importierte Modelle</string>
+  <plurals name="model_list_number_of_models_available">
+    <item quantity="one">%d Modell verfügbar</item>
+    <item quantity="other">%d Modelle verfügbar</item>
+  </plurals>
+  <string name="model_list_recommended_models_title">Empfohlene Modelle</string>
+  <string name="model_manager">Modell-Manager</string>
+  <string name="model_manager_select_task_title">Anwendungsfall zum Ausprobieren auswählen</string>
+  <string name="model_not_downloaded_msg">Modell noch nicht heruntergeladen</string>
+  <string name="name">Name</string>
+  <string name="no_cutouts_collected">Keine Ausschnitte gesammelt</string>
+  <string name="notification_content_fail">Modell \"%s\" konnte nicht heruntergeladen werden</string>
+  <string name="notification_content_success">Modell \"%s\" wurde heruntergeladen</string>
+  <string name="notification_title_fail">Modell-Download fehlgeschlagen</string>
+  <string name="notification_title_success">Modell-Download erfolgreich</string>
+  <string name="ok">OK</string>
+  <string name="paste_from_clipboard">Aus Zwischenablage einfügen</string>
+  <string name="pick_from_album">Aus Album auswählen</string>
+  <string name="preview">Vorschau</string>
+  <string name="release_to_send">Loslassen zum Senden</string>
+  <string name="replace">Ersetzen</string>
+  <string name="results">Ergebnisse</string>
+  <string name="reset">Zurücksetzen</string>
+  <string name="reset_note">Das Tippen auf \"Zurücksetzen\" setzt nur die LiteRT-LM-Engine zurück. Der Spielfortschritt wird nicht beeinflusst.</string>
+  <string name="resetting_engine">Engine wird zurückgesetzt...</string>
+  <string name="restore_default">Standard wiederherstellen</string>
+  <string name="reinitializing_description">Der Spielfortschritt wird nicht beeinflusst</string>
+  <string name="run">Ausführen</string>
+  <string name="running">Läuft...</string>
+  <plurals name="runs">
+    <item quantity="one">%d Durchlauf</item>
+    <item quantity="other">%d Durchläufe</item>
+  </plurals>
+  <string name="run_again">Erneut ausführen</string>
+  <string name="run_benchmark">Benchmark ausführen</string>
+  <string name="run_benchmark_confirmation_msg">Dieser Vorgang dauert in der Regel mehrere Minuten und kann nach dem Start nicht unterbrochen werden. Möchtest du fortfahren?</string>
+  <string name="running_benchmark_msg">Modell-Benchmark wird ausgeführt...</string>
+  <string name="secret">Geheimnis</string>
+  <string name="select_all">Alle auswählen</string>
+  <string name="select_downloaded_model">Heruntergeladenes Modell auswählen</string>
+  <string name="select_model">Modell auswählen</string>
+  <string name="selected_count">%d ausgewählt</string>
+  <string name="settings_dialog_tos_title">Nutzungsbedingungen</string>
+  <string name="settings_dialog_view_app_terms_of_service">App-Nutzungsbedingungen anzeigen</string>
+  <string name="settings_dialog_gemma_prohibited_use_policy">Gemma-Richtlinie zur verbotenen Nutzung</string>
+  <string name="share">Teilen</string>
+  <string name="slide_up_to_cancel">Nach oben wischen zum Abbrechen</string>
+  <string name="system_prompt_updated">System-Prompt aktualisiert</string>
+  <string name="take_a_picture">Foto aufnehmen</string>
+  <string name="tap_to_change_color">Tippen zum Ändern der Farbe</string>
+  <string name="tap_to_see_value">Auf Diagramm tippen, um Wert anzuzeigen</string>
+  <string name="test">Test</string>
+  <string name="text_image_generation_text_field_placeholder">Prompt eingeben…</string>
+  <string name="text_input_placeholder_llm_chat">Prompt eingeben…</string>
+  <string name="tos_dialog_title_app">Willkommen bei Google AI Edge Gallery</string>
+  <string name="tos_dialog_title_gemma">Gemma Nutzungsbedingungen</string>
+  <string name="tos_dialog_accept_and_continue_button_label">Akzeptieren &amp; weiter</string>
+  <string name="tos_dialog_agree_and_continue_button_label">Zustimmen &amp; weiter</string>
+  <string name="try_it">Ausprobieren</string>
+  <string name="undo">Rückgängig</string>
+  <string name="unsupported_action">Nicht unterstützte Aktion</string>
+  <string name="set_screen_brightness_message">Ich habe die Bildschirmhelligkeit auf %1$d%% gesetzt.</string>
+  <string name="set_timer_message">Timer wird auf %1$d Sekunden gestellt.</string>
+  <string name="add_calendar_event_message">„Teambesprechung (10–11 Uhr)" wird deinem Kalender hinzugefügt.</string>
+  <string name="take_picture_message">Kamera-App wird geöffnet.</string>
+  <string name="mobile_actions_title">Mobile Aktionen</string>
+  <string name="mobile_actions_description">Steuere dein Gerät mit einfachen Befehlen</string>
+  <string name="mobile_actions_supported_actions">Unterstützte Beispielaktionen:</string>
+  <string name="mobile_actions_tab_model_response">Modellantwort</string>
+  <string name="mobile_actions_tab_function_called">Aufgerufene Funktion(en)</string>
+  <string name="view_results">Ergebnisse anzeigen</string>
+  <string name="warming_up">aufwärmen…</string>
+  <string name="warning_no_function_call">Keine Funktion erkannt</string>
+  <string name="snackbar_no_function_call">Keine Funktion erkannt</string>
+  <string name="unknown_error">Unbekannter Fehler</string>
+  <string name="view">Anzeigen</string>
+
+  <plurals name="parameter">
+    <item quantity="one">Parameter</item>
+    <item quantity="other">Parameter</item>
+  </plurals>
+  <string name="prompt_template_label_flash_on_off">Taschenlampe ein/aus</string>
+  <string name="prompt_template_label_flash_on">Taschenlampe ein</string>
+  <string name="prompt_template_label_flash_off">Taschenlampe aus</string>
+  <string name="prompt_template_label_create_contact">Kontakt erstellen</string>
+  <string name="prompt_template_label_send_email">E-Mail senden</string>
+  <string name="prompt_template_label_create_calendar_event">Kalenderereignis erstellen</string>
+  <string name="prompt_template_label_show_location_on_map">Standort auf Karte anzeigen</string>
+  <string name="prompt_template_label_open_wifi_settings">WLAN-Einstellungen öffnen</string>
+
+  <!-- Strings for MobileActionsChallengeDialog -->
+  <string name="mobile_actions_challenge_title">Mobile Actions Finetune Challenge</string>
+  <string name="mobile_actions_challenge_subtitle">Bauen, um zu spielen!</string>
+  <string name="mobile_actions_challenge_description">Diese Demo ist gesperrt. Um den Mobile-Actions-Agenten freizuschalten, musst du das Modell selbst mit unserem Open-Source-Rezept kompilieren.</string>
+  <string name="mobile_actions_challenge_instructions_title">Anweisungen:</string>
+  <string name="mobile_actions_challenge_instruction_1">1. <![CDATA[<b>Öffne auf deinem Computer</b>]]> <![CDATA[<a href="https://ai.google.dev/gemma/docs/mobile-actions">diese Anleitung</a>]]></string>
+  <string name="mobile_actions_challenge_instruction_2">2. Folge den Anweisungen, um das Modell zu feinabstimmen und in das .litertlm-Format zu konvertieren.</string>
+  <string name="mobile_actions_challenge_instruction_3">3. Übertrage die Datei auf dieses Telefon.</string>
+  <string name="mobile_actions_challenge_instruction_4">4. Tippe unten auf <![CDATA[<b>Modell laden</b>]]>, um die Demo freizuschalten.</string>
+  <string name="mobile_actions_challenge_email_colab">Anleitung an mich senden</string>
+  <string name="mobile_actions_challenge_load_model">Modell laden</string>
+
+  <!-- The following entries are for accessibility -->
+  <string name="cd_import_model_button">Modell importieren</string>
+  <string name="cd_task_card">%1$s-Aufgabe mit %2$d Modellen</string>
+  <string name="cd_error">Fehler</string>
+  <string name="cd_import_model_from_local_file_button">Modell aus lokaler Datei importieren</string>
+  <string name="cd_navigate_back_icon">Zurück</string>
+  <string name="cd_app_settings_icon">Einstellungen</string>
+  <string name="cd_done_icon">Fertig</string>
+  <string name="cd_collapse_icon">Einklappen</string>
+  <string name="cd_expand_icon">Ausklappen</string>
+  <string name="cd_stop_icon">Stopp</string>
+  <string name="cd_delete_icon">Löschen</string>
+  <string name="cd_close_icon">Schließen</string>
+  <string name="cd_selected_icon">Ausgewählt</string>
+  <string name="cd_model_settings_icon">Modelleinstellungen</string>
+  <string name="cd_reset_session_icon">Sitzung zurücksetzen</string>
+  <string name="cd_change_model">Aktuelles Modell ist %1$s. Tippen zum Ändern des Modells.</string>
+  <string name="cd_close_image_viewer_icon">Bild-Viewer schließen</string>
+  <string name="cd_copy_to_clipboard_icon">In Zwischenablage kopieren</string>
+  <string name="cd_prompt_input_text_field">Prompt-Eingabe</string>
+  <string name="cd_send_prompt_icon">Prompt senden</string>
+  <string name="cd_model_response_text">Modellantworttext</string>
+  <string name="cd_clear_input_history_icon">Eingabeverlauf leeren</string>
+  <string name="cd_delete_input_history_entry_icon">Eingabeverlaufseintrag löschen</string>
+  <string name="cd_content_input_field">Inhaltseingabe</string>
+  <string name="cd_add_example_prompt_icon">Beispiel-Prompt hinzufügen</string>
+  <string name="cd_image_thumbnail">Bildvorschau</string>
+  <string name="cd_user_image">Nutzerbild %1$d</string>
+  <string name="cd_user_image_in_group">Nutzerbild %1$d von %2$d</string>
+  <string name="cd_add_content_icon">Inhalt hinzufügen</string>
+  <string name="cd_camera_shutter_icon">Kameraverschluss</string>
+  <string name="cd_toggle_front_back_camera_icon">Zwischen Front- und Rückkamera wechseln</string>
+  <string name="cd_pick_file">Datei auswählen</string>
+  <string name="cd_play_audio_icon">Audio abspielen</string>
+  <string name="cd_stop_playback_icon">Wiedergabe stoppen</string>
+  <string name="cd_send_audio_clip_icon">Audioclip senden</string>
+  <string name="cd_start_recording">Aufnahme starten</string>
+  <string name="cd_downloaded_icon">Heruntergeladen</string>
+  <string name="cd_not_downloaded_icon">Nicht heruntergeladen</string>
+  <string name="cd_downloading_icon">Wird heruntergeladen</string>
+  <string name="cd_download_failed_icon">Download fehlgeschlagen</string>
+  <string name="cd_chat_panel">Chat-Bereich</string>
+  <string name="cd_switch_to_keyboard">Zur Tastatur wechseln</string>
+  <string name="cd_switch_to_voice">Zur Spracheingabe wechseln</string>
+  <string name="cd_show_history">Verlauf anzeigen</string>
+  <string name="cd_more_options">Weitere Optionen</string>
+  <string name="cd_help">Hilfe</string>
+  <string name="cd_menu">Menü</string>
+
+</resources>

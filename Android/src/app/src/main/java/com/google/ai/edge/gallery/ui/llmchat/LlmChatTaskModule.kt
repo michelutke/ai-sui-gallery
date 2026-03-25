@@ -18,6 +18,8 @@ package com.google.ai.edge.gallery.ui.llmchat
 
 import android.content.Context
 import androidx.compose.material.icons.Icons
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Mms
@@ -50,6 +52,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
       icon = Icons.Outlined.Forum,
       models = mutableListOf(),
       description = "Chat with on-device large language models",
+      defaultSystemPrompt = "Always respond in the same language the user writes in.",
       docUrl = "https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md",
       sourceCodeUrl =
         "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt",
@@ -68,6 +71,7 @@ class LlmChatTask @Inject constructor() : CustomTask {
       supportImage = false,
       supportAudio = false,
       onDone = onDone,
+      systemInstruction = Contents.of(listOf(Content.Text(task.defaultSystemPrompt))),
       coroutineScope = coroutineScope,
     )
   }
@@ -110,6 +114,7 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
       icon = Icons.Outlined.Mms,
       models = mutableListOf(),
       description = "Ask questions about images with on-device large language models",
+      defaultSystemPrompt = "Always respond in the same language the user writes in.",
       docUrl = "https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md",
       sourceCodeUrl =
         "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt",
@@ -128,6 +133,7 @@ class LlmAskImageTask @Inject constructor() : CustomTask {
       supportImage = true,
       supportAudio = false,
       onDone = onDone,
+      systemInstruction = Contents.of(listOf(Content.Text(task.defaultSystemPrompt))),
       coroutineScope = coroutineScope,
     )
   }
@@ -174,6 +180,7 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
       models = mutableListOf(),
       description =
         "Instantly transcribe and/or translate audio clips using on-device large language models",
+      defaultSystemPrompt = "Always respond in the same language the user writes in.",
       docUrl = "https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md",
       sourceCodeUrl =
         "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/ui/llmchat/LlmChatModelHelper.kt",
@@ -192,6 +199,7 @@ class LlmAskAudioTask @Inject constructor() : CustomTask {
       supportImage = false,
       supportAudio = true,
       onDone = onDone,
+      systemInstruction = Contents.of(listOf(Content.Text(task.defaultSystemPrompt))),
       coroutineScope = coroutineScope,
     )
   }

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
   // Note: set apply to true to enable google-services (requires google-services.json).
@@ -28,16 +31,21 @@ plugins {
   kotlin("kapt")
 }
 
+val localProperties = Properties()
+rootProject.file("local.properties").let { file ->
+  if (file.exists()) localProperties.load(FileInputStream(file))
+}
+
 android {
   namespace = "com.google.ai.edge.gallery"
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.google.aiedge.gallery"
+    applicationId = "com.appswithlove.aiedge.gallery"
     minSdk = 31
     targetSdk = 35
-    versionCode = 20
-    versionName = "1.0.11"
+    versionCode = 1
+    versionName = "1.0.0"
 
     // Needed for HuggingFace auth workflows.
     // Use the scheme of the "Redirect URLs" in HuggingFace app.
@@ -46,6 +54,8 @@ android {
     manifestPlaceholders["applicationName"] = "com.google.ai.edge.gallery.GalleryApplication"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    buildConfigField("String", "HF_TOKEN", "\"${localProperties.getProperty("hf.token", "")}\"")
   }
 
   buildTypes {

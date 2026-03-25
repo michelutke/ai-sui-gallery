@@ -277,6 +277,22 @@ fun DownloadAndTryButton(
           }
           Log.d(TAG, "Model '${model.name}' needs auth. Start token exchange process...")
 
+          // Try BuildConfig HF token first (avoids OAuth flow)
+          val buildConfigToken = com.google.ai.edge.gallery.BuildConfig.HF_TOKEN
+          if (buildConfigToken.isNotBlank()) {
+            Log.d(TAG, "Using BuildConfig HF token for model '${model.name}'")
+            val tokenResponseCode = modelManagerViewModel.getModelUrlResponse(
+              model = model,
+              accessToken = buildConfigToken,
+            )
+            if (tokenResponseCode == HttpURLConnection.HTTP_OK) {
+              Log.d(TAG, "BuildConfig token works. Start downloading...")
+              withContext(Dispatchers.Main) { startDownload(buildConfigToken) }
+              return@launch
+            }
+            Log.d(TAG, "BuildConfig token returned $tokenResponseCode, falling through to OAuth...")
+          }
+
           // Get current token status
           val tokenStatusAndData = modelManagerViewModel.getTokenStatusAndData()
 
