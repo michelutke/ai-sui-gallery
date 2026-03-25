@@ -36,6 +36,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -459,6 +462,38 @@ private fun ResultView(
     }
 
     result?.let { r ->
+      val validation = remember(r) { InsuranceCardValidator.validate(r) }
+
+      // Overall status
+      Card(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        colors = CardDefaults.cardColors(
+          containerColor = if (validation.allValid)
+            MaterialTheme.colorScheme.primaryContainer
+          else
+            MaterialTheme.colorScheme.errorContainer
+        ),
+      ) {
+        Row(
+          modifier = Modifier.padding(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Icon(
+            if (validation.allValid) Icons.Default.CheckCircle else Icons.Default.Warning,
+            contentDescription = null,
+            tint = if (validation.allValid)
+              MaterialTheme.colorScheme.primary
+            else
+              MaterialTheme.colorScheme.error,
+          )
+          Spacer(Modifier.width(8.dp))
+          Text(
+            if (validation.allValid) "Alle Pflichtfelder gültig" else "Einige Felder ungültig",
+            style = MaterialTheme.typography.titleSmall,
+          )
+        }
+      }
+
       Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -469,13 +504,13 @@ private fun ResultView(
             style = MaterialTheme.typography.titleMedium,
           )
           Spacer(Modifier.height(4.dp))
-          FieldRow(stringResource(R.string.insurance_field_versicherer), r.versicherer)
-          FieldRow(stringResource(R.string.insurance_field_name), r.name)
-          FieldRow(stringResource(R.string.insurance_field_vorname), r.vorname)
-          FieldRow(stringResource(R.string.insurance_field_geburtsdatum), r.geburtsdatum)
-          FieldRow(stringResource(R.string.insurance_field_versichertennummer), r.versichertennummer)
-          FieldRow(stringResource(R.string.insurance_field_ahv_nummer), r.ahvNummer)
-          FieldRow(stringResource(R.string.insurance_field_kartennummer), r.kartenNummer)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_versicherer), r.versicherer, validation.versicherer)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_name), r.name, validation.name)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_vorname), r.vorname, validation.vorname)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_geburtsdatum), r.geburtsdatum, validation.geburtsdatum)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_versichertennummer), r.versichertennummer, validation.versichertennummer)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_ahv_nummer), r.ahvNummer, validation.ahvNummer)
+          ValidatedFieldRow(stringResource(R.string.insurance_field_kartennummer), r.kartenNummer, validation.kartenNummer)
         }
       }
     }
@@ -486,11 +521,37 @@ private fun ResultView(
 }
 
 @Composable
-private fun FieldRow(label: String, value: String) {
-  if (value.isNotBlank()) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-      Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-      Text(value, style = MaterialTheme.typography.bodyMedium)
+private fun ValidatedFieldRow(label: String, value: String, validation: FieldValidation) {
+  if (value.isBlank() && validation.isValid) return // skip empty optional fields
+  Column(modifier = Modifier.fillMaxWidth()) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+      Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(value.ifBlank { "-" }, style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(6.dp))
+        Icon(
+          imageVector = when {
+            !validation.isValid -> Icons.Default.Error
+            validation.message.isNotEmpty() -> Icons.Default.Warning
+            else -> Icons.Default.CheckCircle
+          },
+          contentDescription = null,
+          modifier = Modifier.size(16.dp),
+          tint = when {
+            !validation.isValid -> MaterialTheme.colorScheme.error
+            validation.message.isNotEmpty() -> MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.primary
+          },
+        )
+      }
+    }
+    if (validation.message.isNotEmpty()) {
+      Text(
+        validation.message,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (validation.isValid) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+        modifier = Modifier.padding(top = 2.dp),
+      )
     }
   }
 }
