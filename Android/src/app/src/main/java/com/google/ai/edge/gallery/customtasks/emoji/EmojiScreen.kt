@@ -81,24 +81,28 @@ fun EmojiScreen(
       .filter { it.isNotEmpty() }
       .collect { text ->
         isLoading = true
-        val prompt = FEW_SHOT_PROMPT + text + "\nEmoji: "
-        val accumulated = StringBuilder()
-        LlmChatModelHelper.runInference(
-          model = model,
-          input = prompt,
-          resultListener = { partialResult, done ->
-            accumulated.append(partialResult)
-            if (done) {
-              val emoji = accumulated.toString().firstEmoji()
-              currentEmoji = emoji
-              isLoading = false
-              // Reset conversation for next query.
-              LlmChatModelHelper.resetConversation(model = model)
-            }
-          },
-          cleanUpListener = {},
-          onError = { isLoading = false },
-        )
+        try {
+          // Reset conversation before each query to keep context clean.
+          LlmChatModelHelper.resetConversation(model = model)
+          val prompt = FEW_SHOT_PROMPT + text + "\nEmoji: "
+          val accumulated = StringBuilder()
+          LlmChatModelHelper.runInference(
+            model = model,
+            input = prompt,
+            resultListener = { partialResult, done ->
+              accumulated.append(partialResult)
+              if (done) {
+                val emoji = accumulated.toString().firstEmoji()
+                currentEmoji = emoji
+                isLoading = false
+              }
+            },
+            cleanUpListener = {},
+            onError = { isLoading = false },
+          )
+        } catch (e: Exception) {
+          isLoading = false
+        }
       }
   }
 
