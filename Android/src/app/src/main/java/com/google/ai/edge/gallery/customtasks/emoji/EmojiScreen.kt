@@ -35,6 +35,8 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val DEBOUNCE_MS = 500L
 
@@ -53,7 +55,9 @@ fun EmojiScreen(
   var inputText by remember { mutableStateOf("") }
   var currentEmoji by remember { mutableStateOf<String?>(null) }
   var isLoading by remember { mutableStateOf(false) }
+  var errorMessage by remember { mutableStateOf<String?>(null) }
   val inputFlow = remember { MutableStateFlow("") }
+  val inferenceMutex = remember { Mutex() }
 
   // Show loading indicator before the model is initialized.
   if (!modelManagerUiState.isModelInitialized(model = model)) {
@@ -78,35 +82,47 @@ fun EmojiScreen(
       .filter { it.isNotEmpty() }
       .collect { text ->
         isLoading = true
-        try {
-          // Reset conversation before each query so system prompt is fresh.
-          LlmChatModelHelper.resetConversation(
-            model = model,
-            systemInstruction = com.google.ai.edge.litertlm.Contents.of(
-              listOf(com.google.ai.edge.litertlm.Content.Text(
-                "You are an emoji assistant. When given a text after 'Text:', respond with ONLY a single emoji on the 'Emoji:' line. " +
-                  "Examples:\nText: I love you\nEmoji: \u2764\uFE0F\nText: It's cold\nEmoji: \uD83E\uDD76\nText: I'm happy\nEmoji: \uD83D\uDE00"
-              ))
-            ),
-          )
-          val prompt = PROMPT_PREFIX + text + PROMPT_SUFFIX
-          val accumulated = StringBuilder()
-          LlmChatModelHelper.runInference(
-            model = model,
-            input = prompt,
-            resultListener = { partialResult, done ->
-              accumulated.append(partialResult)
-              if (done) {
-                val emoji = accumulated.toString().firstEmoji()
-                currentEmoji = emoji
+        errorMessage = null
+        inferenceMutex.withLock {
+          try {
+            // Cancel any in-flight inference before resetting.
+            try {
+              LlmChatModelHelper.stopResponse(model = model)
+            } catch (_: Exception) {}
+
+            // Reset conversation before each query so system prompt is fresh.
+            LlmChatModelHelper.resetConversation(
+              model = model,
+              systemInstruction = com.google.ai.edge.litertlm.Contents.of(
+                listOf(com.google.ai.edge.litertlm.Content.Text(
+                  "You are an emoji assistant. When given a text after 'Text:', respond with ONLY a single emoji on the 'Emoji:' line. " +
+                    "Examples:\nText: I love you\nEmoji: \u2764\uFE0F\nText: It's cold\nEmoji: \uD83E\uDD76\nText: I'm happy\nEmoji: \uD83D\uDE00"
+                ))
+              ),
+            )
+            val prompt = PROMPT_PREFIX + text + PROMPT_SUFFIX
+            val accumulated = StringBuilder()
+            LlmChatModelHelper.runInference(
+              model = model,
+              input = prompt,
+              resultListener = { partialResult, done ->
+                accumulated.append(partialResult)
+                if (done) {
+                  val emoji = accumulated.toString().firstEmoji()
+                  currentEmoji = emoji
+                  isLoading = false
+                }
+              },
+              cleanUpListener = {},
+              onError = { msg ->
                 isLoading = false
-              }
-            },
-            cleanUpListener = {},
-            onError = { isLoading = false },
-          )
-        } catch (e: Exception) {
-          isLoading = false
+                errorMessage = msg
+              },
+            )
+          } catch (e: Exception) {
+            isLoading = false
+            errorMessage = "Model error. Try switching models."
+          }
         }
       }
   }
@@ -137,6 +153,21 @@ fun EmojiScreen(
               modifier = Modifier.padding(top = 8.dp),
             )
           }
+        } else if (errorMessage != null) {
+          Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+              text = "\u26A0\uFE0F",
+              fontSize = 48.sp,
+              textAlign = TextAlign.Center,
+            )
+            Text(
+              text = errorMessage!!,
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.error,
+              textAlign = TextAlign.Center,
+              modifier = Modifier.padding(top = 4.dp, start = 8.dp, end = 8.dp),
+            )
+          }
         } else if (currentEmoji != null) {
           Text(
             text = currentEmoji!!,
@@ -159,6 +190,7 @@ fun EmojiScreen(
       onValueChange = { newText ->
         inputText = newText
         inputFlow.value = newText
+        errorMessage = null
         if (newText.isEmpty()) {
           currentEmoji = null
           isLoading = false

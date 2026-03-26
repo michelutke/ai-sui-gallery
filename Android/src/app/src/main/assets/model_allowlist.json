@@ -7,7 +7,7 @@
       "description": "Preview version of Gemma 3n E2B with vision support and 4096 context length.",
       "sizeInBytes": 3136226711,
       "estimatedPeakMemoryInBytes": 5905580032,
-      "commitHash": "ba9ca88da013b537b6ed38108be609b8db1c3a16",
+      "commitHash": "66c93e118deff9961db659f241678e61b847d165",
       "llmSupportImage": true,
       "defaultConfig": {
         "topK": 64,
@@ -25,7 +25,7 @@
       "description": "Preview version of Gemma 3n E4B with vision support and 4096 context length.",
       "sizeInBytes": 4405655031,
       "estimatedPeakMemoryInBytes": 6979321856,
-      "commitHash": "297ed75955702dec3503e00c2c2ecbbf475300bc",
+      "commitHash": "13fcf7532a87d6c3493f4b9b71af4e0842ceac5c",
       "llmSupportImage": true,
       "defaultConfig": {
         "topK": 64,
@@ -43,7 +43,7 @@
       "description": "Gemma 3 1B with 4-bit quantization for on-device LLM inference.",
       "sizeInBytes": 554661246,
       "estimatedPeakMemoryInBytes": 2147483648,
-      "commitHash": "42d538a932e8d5b12e6b3b455f5572560bd60b2c",
+      "commitHash": "027f2d8d21630be64463326180f230293148e550",
       "defaultConfig": {
         "topK": 64,
         "topP": 0.95,
