@@ -76,7 +76,7 @@ private const val TEXT_INPUT_HISTORY_MAX_SIZE = 50
 private const val MODEL_ALLOWLIST_FILENAME = "model_allowlist.json"
 private const val MODEL_ALLOWLIST_TEST_FILENAME = "model_allowlist_test.json"
 private const val ALLOWLIST_BASE_URL =
-  "https://raw.githubusercontent.com/google-ai-edge/gallery/refs/heads/main/model_allowlists"
+  "https://raw.githubusercontent.com/michelutke/ai-sui-gallery/refs/heads/main/model_allowlists"
 
 private const val TEST_MODEL_ALLOW_LIST = ""
 
@@ -809,6 +809,12 @@ constructor(
           }
         }
 
+        // Fallback: load from bundled assets
+        if (modelAllowlist == null) {
+          Log.d(TAG, "Trying to load model allowlist from bundled assets")
+          modelAllowlist = readModelAllowlistFromAssets()
+        }
+
         if (modelAllowlist == null) {
           _uiState.update {
             uiState.value.copy(loadingModelAllowlistError = "Failed to load model list")
@@ -940,6 +946,17 @@ constructor(
     }
 
     return null
+  }
+
+  private fun readModelAllowlistFromAssets(): ModelAllowlist? {
+    return try {
+      val json = context.assets.open(MODEL_ALLOWLIST_FILENAME).bufferedReader().use { it.readText() }
+      Log.d(TAG, "Loaded model allowlist from assets")
+      Gson().fromJson(json, ModelAllowlist::class.java)
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to read model allowlist from assets", e)
+      null
+    }
   }
 
   private fun isModelPartiallyDownloaded(model: Model): Boolean {
@@ -1107,8 +1124,8 @@ constructor(
             } else if (indexB != -1) {
               1
             } else {
-              val ca = categoryMap[a.id]!!
-              val cb = categoryMap[b.id]!!
+              val ca = categoryMap[a.category.id] ?: a.category
+              val cb = categoryMap[b.category.id] ?: b.category
               val caLabel = getCategoryLabel(context = context, category = ca)
               val cbLabel = getCategoryLabel(context = context, category = cb)
               caLabel.compareTo(cbLabel)
