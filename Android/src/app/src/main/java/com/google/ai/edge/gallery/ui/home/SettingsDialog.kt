@@ -77,6 +77,7 @@ import com.google.ai.edge.gallery.proto.Theme
 import com.google.ai.edge.gallery.ui.common.ClickableLink
 import com.google.ai.edge.gallery.ui.common.tos.AppTosDialog
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
+import com.google.ai.edge.gallery.ui.theme.LocaleSettings
 import com.google.ai.edge.gallery.ui.theme.ThemeSettings
 import com.google.ai.edge.gallery.ui.theme.labelSmallNarrow
 import java.time.Instant
@@ -86,6 +87,15 @@ import java.util.Locale
 import kotlin.math.min
 
 private val THEME_OPTIONS = listOf(Theme.THEME_AUTO, Theme.THEME_LIGHT, Theme.THEME_DARK)
+
+private data class LanguageOption(val tag: String, val label: String)
+
+private val LANGUAGE_OPTIONS = listOf(
+  LanguageOption("de", "DE"),
+  LanguageOption("fr", "FR"),
+  LanguageOption("it", "IT"),
+  LanguageOption("en", "EN"),
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +116,7 @@ fun SettingsDialog(
   val focusRequester = remember { FocusRequester() }
   val interactionSource = remember { MutableInteractionSource() }
   var showTos by remember { mutableStateOf(false) }
+  var selectedLanguageTag by remember { mutableStateOf(LocaleSettings.languageTag.value) }
 
   Dialog(onDismissRequest = onDismissed) {
     val focusManager = LocalFocusManager.current
@@ -182,6 +193,29 @@ fun SettingsDialog(
                   },
                   checked = theme == selectedTheme,
                   label = { Text(themeLabel(theme)) },
+                )
+              }
+            }
+          }
+
+          // Language switcher.
+          Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+            Text(
+              stringResource(R.string.settings_language),
+              style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
+            )
+            MultiChoiceSegmentedButtonRow {
+              LANGUAGE_OPTIONS.forEachIndexed { index, option ->
+                SegmentedButton(
+                  shape =
+                    SegmentedButtonDefaults.itemShape(index = index, count = LANGUAGE_OPTIONS.size),
+                  onCheckedChange = {
+                    selectedLanguageTag = option.tag
+                    LocaleSettings.languageTag.value = option.tag
+                    modelManagerViewModel.saveLanguageTag(option.tag)
+                  },
+                  checked = option.tag == selectedLanguageTag,
+                  label = { Text(option.label) },
                 )
               }
             }

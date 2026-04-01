@@ -506,6 +506,10 @@ constructor(
     dataStoreRepository.saveTheme(theme = theme)
   }
 
+  fun saveLanguageTag(tag: String) {
+    dataStoreRepository.saveLanguageTag(tag)
+  }
+
   fun getModelUrlResponse(model: Model, accessToken: String? = null): Int {
     try {
       val url = URL(model.url)
@@ -826,6 +830,10 @@ constructor(
 
         // Convert models in the allowlist.
         val curTasks = getActiveCustomTasks().map { it.task }
+        // Clear non-imported models to avoid duplicates on Activity recreation (e.g. locale change).
+        for (task in curTasks) {
+          task.models.removeAll { !it.imported }
+        }
         val nameToModel = mutableMapOf<String, Model>()
         for (allowedModel in modelAllowlist.models) {
           if (allowedModel.disabled == true) {

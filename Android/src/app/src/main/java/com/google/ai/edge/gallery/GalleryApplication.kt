@@ -18,6 +18,7 @@ package com.google.ai.edge.gallery
 
 import android.app.Application
 import com.google.ai.edge.gallery.data.DataStoreRepository
+import com.google.ai.edge.gallery.ui.theme.LocaleSettings
 import com.google.ai.edge.gallery.ui.theme.ThemeSettings
 import com.google.firebase.FirebaseApp
 import dagger.hilt.android.HiltAndroidApp
@@ -31,8 +32,9 @@ class GalleryApplication : Application() {
   override fun onCreate() {
     super.onCreate()
 
-    // Load saved theme.
+    // Load saved theme and locale.
     ThemeSettings.themeOverride.value = dataStoreRepository.readTheme()
+    LocaleSettings.languageTag.value = dataStoreRepository.readLanguageTag()
 
     FirebaseApp.initializeApp(this)
   }
