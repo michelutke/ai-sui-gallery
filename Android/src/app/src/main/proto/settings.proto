@@ -75,6 +75,8 @@ message Settings {
   // Feature flags
   map<string, bool> feature_flags = 9;
   // copybara:strip_end
+  // BCP 47 language tag for in-app locale override (empty = system default).
+  string language_tag = 10;
 }
 
 message UserData {

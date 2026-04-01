@@ -17,6 +17,9 @@
 package com.google.ai.edge.gallery.ui.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.Resources
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -30,9 +33,11 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.google.ai.edge.gallery.proto.Theme
+import java.util.Locale
 
 private val lightScheme =
   lightColorScheme(
@@ -282,7 +287,23 @@ fun GalleryTheme(content: @Composable () -> Unit) {
 
   val customColorsPalette = if (darkTheme) darkCustomColors else lightCustomColors
 
-  CompositionLocalProvider(LocalCustomColors provides customColorsPalette) {
+  val languageTag = LocaleSettings.languageTag.value
+  val baseContext = LocalContext.current
+  val localizedContext = if (languageTag.isNotEmpty()) {
+    val locale = Locale.forLanguageTag(languageTag)
+    val config = android.content.res.Configuration(baseContext.resources.configuration).apply {
+      setLocale(locale)
+    }
+    val localeResources = baseContext.createConfigurationContext(config).resources
+    LocaleContextWrapper(baseContext, localeResources)
+  } else {
+    baseContext
+  }
+
+  CompositionLocalProvider(
+    LocalCustomColors provides customColorsPalette,
+    LocalContext provides localizedContext,
+  ) {
     MaterialTheme(colorScheme = colorScheme, typography = AppTypography, content = content)
   }
 
@@ -294,4 +315,12 @@ fun GalleryTheme(content: @Composable () -> Unit) {
       window.isNavigationBarContrastEnforced = false
     }
   }
+}
+
+/** Wraps the Activity context so Hilt can still find it, but overrides resources for locale. */
+private class LocaleContextWrapper(
+  base: Context,
+  private val overrideResources: Resources,
+) : ContextWrapper(base) {
+  override fun getResources(): Resources = overrideResources
 }

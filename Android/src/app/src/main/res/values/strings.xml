@@ -147,6 +147,8 @@
   <string name="select_downloaded_model">Select a downloaded model</string>
   <string name="select_model">Select a model</string>
   <string name="selected_count">%d selected</string>
+  <string name="settings_language">Language</string>
+  <string name="settings_language_system">System</string>
   <string name="settings_dialog_tos_title">Terms of service</string>
   <string name="settings_dialog_view_app_terms_of_service">View App Terms of Service</string>
   <string name="settings_dialog_gemma_prohibited_use_policy">Gemma Prohibited Use Policy</string>

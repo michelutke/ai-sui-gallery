@@ -140,6 +140,8 @@
   <string name="select_downloaded_model">Sélectionner un modèle téléchargé</string>
   <string name="select_model">Sélectionner un modèle</string>
   <string name="selected_count">%d sélectionné(s)</string>
+  <string name="settings_language">Langue</string>
+  <string name="settings_language_system">Syst\u00e8me</string>
   <string name="settings_dialog_tos_title">Conditions d\'utilisation</string>
   <string name="settings_dialog_view_app_terms_of_service">Afficher les conditions d\'utilisation de l\'application</string>
   <string name="settings_dialog_gemma_prohibited_use_policy">Politique d\'utilisation interdite de Gemma</string>

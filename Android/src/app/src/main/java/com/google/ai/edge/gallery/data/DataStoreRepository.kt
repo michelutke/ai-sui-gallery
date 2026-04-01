@@ -39,6 +39,10 @@ interface DataStoreRepository {
 
   fun readTheme(): Theme
 
+  fun saveLanguageTag(tag: String)
+
+  fun readLanguageTag(): String
+
   fun saveSecret(key: String, value: String)
 
   fun readSecret(key: String): String?
@@ -120,6 +124,18 @@ class DefaultDataStoreRepository(
       val curTheme = settings.theme
       // Use "auto" as the default theme.
       if (curTheme == Theme.THEME_UNSPECIFIED) Theme.THEME_AUTO else curTheme
+    }
+  }
+
+  override fun saveLanguageTag(tag: String) {
+    runBlocking {
+      dataStore.updateData { settings -> settings.toBuilder().setLanguageTag(tag).build() }
+    }
+  }
+
+  override fun readLanguageTag(): String {
+    return runBlocking {
+      dataStore.data.first().languageTag
     }
   }
 
