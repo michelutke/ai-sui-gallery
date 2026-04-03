@@ -43,6 +43,7 @@ import com.google.ai.edge.gallery.data.ModelAllowlist
 import com.google.ai.edge.gallery.data.ModelDownloadStatus
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.NumberSliderConfig
+import com.google.ai.edge.gallery.data.RuntimeType
 import com.google.ai.edge.gallery.data.SOC
 import com.google.ai.edge.gallery.data.TMP_FILE_EXT
 import com.google.ai.edge.gallery.data.Task
@@ -83,7 +84,14 @@ private const val TEST_MODEL_ALLOW_LIST = ""
 data class ModelInitializationStatus(
   val status: ModelInitializationStatusType,
   var error: String = "",
-)
+  var initializedBackends: Set<String> = setOf(),
+) {
+  fun isFirstInitialization(model: Model): Boolean {
+    val backend =
+      model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = Accelerator.GPU.label)
+    return !initializedBackends.contains(backend)
+  }
+}
 
 enum class ModelInitializationStatusType {
   NOT_INITIALIZED,
@@ -161,10 +169,10 @@ private val PREDEFINED_LLM_TASK_ORDER =
     BuiltInTaskId.LLM_ASK_IMAGE,
     BuiltInTaskId.LLM_ASK_AUDIO,
     BuiltInTaskId.LLM_CHAT,
+    BuiltInTaskId.LLM_AGENT_CHAT,
     BuiltInTaskId.LLM_PROMPT_LAB,
     BuiltInTaskId.LLM_TINY_GARDEN,
     BuiltInTaskId.LLM_MOBILE_ACTIONS,
-    // BuiltInTaskId.MP_SCRAPBOOK,
   )
 
 /**
@@ -179,7 +187,7 @@ open class ModelManagerViewModel
 @Inject
 constructor(
   private val downloadRepository: DownloadRepository,
-  private val dataStoreRepository: DataStoreRepository,
+  val dataStoreRepository: DataStoreRepository,
   private val lifecycleProvider: AppLifecycleProvider,
   private val customTasks: Set<@JvmSuppressWildcards CustomTask>,
   @ApplicationContext private val context: Context,
@@ -208,9 +216,11 @@ constructor(
   }
 
   fun getActiveCustomTasks(): List<CustomTask> {
-    return customTasks.filter {
-      true
-    }
+    return customTasks.toList()
+  }
+
+  fun getSelectedModel(): Model? {
+    return uiState.value.selectedModel
   }
 
   fun getModelByName(name: String): Model? {
@@ -399,11 +409,23 @@ constructor(
     }
   }
 
-  fun cleanupModel(context: Context, task: Task, model: Model, onDone: () -> Unit = {}) {
+  fun cleanupModel(
+    context: Context,
+    task: Task,
+    model: Model,
+    instanceToCleanUp: Any? = model.instance,
+    onDone: () -> Unit = {},
+  ) {
+    if (instanceToCleanUp != null && instanceToCleanUp !== model.instance) {
+      Log.d(TAG, "Stale cleanup request for ${model.name}. Aborting.")
+      onDone()
+      return
+    }
+
     if (model.instance != null) {
       model.cleanUpAfterInit = false
       Log.d(TAG, "Cleaning up model '${model.name}'...")
-      val onDone: () -> Unit = {
+      val onDoneFn: () -> Unit = {
         model.instance = null
         model.initializing = false
         updateModelInitializationStatus(
@@ -418,7 +440,7 @@ constructor(
           context = context,
           coroutineScope = viewModelScope,
           model = model,
-          onDone = onDone,
+          onDone = onDoneFn,
         )
     } else {
       // When model is being initialized and we are trying to clean it up at same time, we mark it
@@ -453,7 +475,19 @@ constructor(
   fun setInitializationStatus(model: Model, status: ModelInitializationStatus) {
     val curStatus = uiState.value.modelInitializationStatus.toMutableMap()
     if (curStatus.containsKey(model.name)) {
-      curStatus[model.name] = status
+      val initializedBackends = curStatus[model.name]?.initializedBackends ?: setOf()
+      val backend =
+        model.getStringConfigValue(
+          key = ConfigKeys.ACCELERATOR,
+          defaultValue = Accelerator.GPU.label,
+        )
+      val newInitializedBackends =
+        if (status.status == ModelInitializationStatusType.INITIALIZED) {
+          initializedBackends + backend
+        } else {
+          initializedBackends
+        }
+      curStatus[model.name] = status.copy(initializedBackends = newInitializedBackends)
       _uiState.update { _uiState.value.copy(modelInitializationStatus = curStatus) }
     }
   }
@@ -541,6 +575,7 @@ constructor(
         BuiltInTaskId.LLM_PROMPT_LAB,
         BuiltInTaskId.LLM_TINY_GARDEN,
         BuiltInTaskId.LLM_MOBILE_ACTIONS,
+        BuiltInTaskId.LLM_AGENT_CHAT,
       )
     for (task in getTasksByIds(ids = setOfTasks)) {
       // Remove duplicated imported model if existed.
@@ -1016,6 +1051,7 @@ constructor(
       // Add to task.
       tasks.get(key = BuiltInTaskId.LLM_CHAT)?.models?.add(model)
       tasks.get(key = BuiltInTaskId.LLM_PROMPT_LAB)?.models?.add(model)
+      tasks.get(key = BuiltInTaskId.LLM_AGENT_CHAT)?.models?.add(model)
       if (model.llmSupportImage) {
         tasks.get(key = BuiltInTaskId.LLM_ASK_IMAGE)?.models?.add(model)
       }
@@ -1068,6 +1104,11 @@ constructor(
         }
         .toMutableList()
     val llmMaxToken = info.llmConfig.defaultMaxTokens
+    val llmSupportImage = info.llmConfig.supportImage
+    val llmSupportAudio = info.llmConfig.supportAudio
+    val llmSupportTinyGarden = info.llmConfig.supportTinyGarden
+    val llmSupportMobileActions = info.llmConfig.supportMobileActions
+    val llmSupportThinking = info.llmConfig.supportThinking
     val configs: MutableList<Config> =
       createLlmChatConfigs(
           defaultMaxToken = llmMaxToken,
@@ -1075,12 +1116,9 @@ constructor(
           defaultTopP = info.llmConfig.defaultTopp,
           defaultTemperature = info.llmConfig.defaultTemperature,
           accelerators = accelerators,
+          supportThinking = llmSupportThinking,
         )
         .toMutableList()
-    val llmSupportImage = info.llmConfig.supportImage
-    val llmSupportAudio = info.llmConfig.supportAudio
-    val llmSupportTinyGarden = info.llmConfig.supportTinyGarden
-    val llmSupportMobileActions = info.llmConfig.supportMobileActions
     val model =
       Model(
         name = info.fileName,
@@ -1095,10 +1133,12 @@ constructor(
         llmSupportAudio = llmSupportAudio,
         llmSupportTinyGarden = llmSupportTinyGarden,
         llmSupportMobileActions = llmSupportMobileActions,
+        llmSupportThinking = llmSupportThinking,
         llmMaxToken = llmMaxToken,
         accelerators = accelerators,
         // We assume all imported models are LLM for now.
         isLlm = true,
+        runtimeType = RuntimeType.LITERT_LM,
       )
     model.preProcess()
 
@@ -1264,7 +1304,21 @@ constructor(
     error: String = "",
   ) {
     val curModelInstance = uiState.value.modelInitializationStatus.toMutableMap()
-    curModelInstance[model.name] = ModelInitializationStatus(status = status, error = error)
+    val initializedBackends = curModelInstance[model.name]?.initializedBackends ?: setOf()
+    val backend =
+      model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = Accelerator.GPU.label)
+    val newInitializedBackends =
+      if (status == ModelInitializationStatusType.INITIALIZED) {
+        initializedBackends + backend
+      } else {
+        initializedBackends
+      }
+    curModelInstance[model.name] =
+      ModelInitializationStatus(
+        status = status,
+        error = error,
+        initializedBackends = newInitializedBackends,
+      )
     val newUiState = uiState.value.copy(modelInitializationStatus = curModelInstance)
     _uiState.update { newUiState }
   }

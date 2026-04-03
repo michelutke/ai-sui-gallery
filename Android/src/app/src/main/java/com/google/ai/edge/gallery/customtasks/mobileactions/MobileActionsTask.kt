@@ -30,6 +30,7 @@ import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.tool
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -43,13 +44,14 @@ private const val TAG = "AGMATask"
  */
 class MobileActionsTask @Inject constructor() : CustomTask {
   private var curActions = mutableStateListOf<Action>()
-  private val tools = listOf(MobileActionsTools(onFunctionCalled = { curActions.add(it) }))
+  private val tools = listOf(tool(MobileActionsTools(onFunctionCalled = { curActions.add(it) })))
 
   override val task =
     Task(
       id = BuiltInTaskId.LLM_MOBILE_ACTIONS,
       label = "Mobile Actions",
       description = "Perform various device actions through Function Gemma",
+      shortDescription = "Leverage device mobile actions",
       docUrl = "https://github.com/google-ai-edge/LiteRT-LM/blob/main/kotlin/README.md",
       sourceCodeUrl =
         "https://github.com/google-ai-edge/gallery/blob/main/Android/src/app/src/main/java/com/google/ai/edge/gallery/customtasks/mobileactions",

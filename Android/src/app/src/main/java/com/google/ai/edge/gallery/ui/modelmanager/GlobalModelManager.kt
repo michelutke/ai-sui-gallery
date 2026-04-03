@@ -25,6 +25,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -82,6 +88,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.Model
+import com.google.ai.edge.gallery.data.RuntimeType
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.proto.ImportedModel
 import com.google.ai.edge.gallery.ui.common.TaskIcon
@@ -120,6 +127,12 @@ fun GlobalModelManager(
   val context = LocalContext.current
   val snackbarHostState = remember { SnackbarHostState() }
   val modelItemExpandedStates = remember { mutableStateMapOf<String, Boolean>() }
+
+  val promoId = "gm4_banner"
+  var showPromo by remember { mutableStateOf(false) }
+  LaunchedEffect(Unit) {
+    showPromo = !viewModel.dataStoreRepository.hasViewedPromo(promoId = promoId)
+  }
 
   val filePickerLauncher: ActivityResultLauncher<Intent> =
     rememberLauncherForActivityResult(
@@ -242,6 +255,21 @@ fun GlobalModelManager(
         contentPadding =
           PaddingValues(top = 16.dp, bottom = innerPadding.calculateBottomPadding() + 80.dp),
       ) {
+        item(key = "promo") {
+          AnimatedVisibility(
+            visible = showPromo,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }) + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+          ) {
+            PromoBannerGm4(
+              onDismiss = {
+                showPromo = false
+                viewModel.dataStoreRepository.addViewedPromoId(promoId = promoId)
+              }
+            )
+          }
+        }
+
         items(builtInModels) { model ->
           val expanded = modelItemExpandedStates.getOrDefault(model.name, true)
           ModelItem(
@@ -251,7 +279,7 @@ fun GlobalModelManager(
             onModelClicked = handleClickModel,
             onBenchmarkClicked = onBenchmarkClicked,
             expanded = expanded,
-            showBenchmarkButton = true,
+            showBenchmarkButton = model.runtimeType == RuntimeType.LITERT_LM,
             onExpanded = { modelItemExpandedStates[model.name] = it },
           )
         }
@@ -275,7 +303,7 @@ fun GlobalModelManager(
             onModelClicked = handleClickModel,
             onBenchmarkClicked = onBenchmarkClicked,
             expanded = true,
-            showBenchmarkButton = true,
+            showBenchmarkButton = model.runtimeType == RuntimeType.LITERT_LM,
           )
         }
       }

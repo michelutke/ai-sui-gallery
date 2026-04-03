@@ -248,7 +248,7 @@ private fun InsuranceCardContent(
                   LlmChatModelHelper.runInference(
                     model = model,
                     input = LLM_PROMPT + text,
-                    resultListener = { partialResult, done ->
+                    resultListener = { partialResult, done, _ ->
                       if (resultHandled) return@runInference
                       llmAccumulator.append(partialResult)
                       // Try to parse early when we see closing brace

@@ -57,6 +57,8 @@ object ConfigKeys {
   val SUPPORT_AUDIO = ConfigKey("support_audio", "Support audio")
   val SUPPORT_TINY_GARDEN = ConfigKey("support_tiny_garden", "Support tiny garden")
   val SUPPORT_MOBILE_ACTIONS = ConfigKey("support_mobile_actions", "Support mobile actions")
+  val SUPPORT_THINKING = ConfigKey("support_thinking", "Support thinking")
+  val ENABLE_THINKING = ConfigKey("enable_thinking", "Enable thinking")
   val MAX_RESULT_COUNT = ConfigKey("max_result_count", "Max result count")
   val USE_GPU = ConfigKey("use_gpu", "Use GPU")
   val ACCELERATOR = ConfigKey("accelerator", "Accelerator")
@@ -218,40 +220,61 @@ fun convertValueToTargetType(value: Any, valueType: ValueType): Any {
 
 fun createLlmChatConfigs(
   defaultMaxToken: Int = DEFAULT_MAX_TOKEN,
+  defaultMaxContextLength: Int? = null,
   defaultTopK: Int = DEFAULT_TOPK,
   defaultTopP: Float = DEFAULT_TOPP,
   defaultTemperature: Float = DEFAULT_TEMPERATURE,
   accelerators: List<Accelerator> = DEFAULT_ACCELERATORS,
+  supportThinking: Boolean = false,
 ): List<Config> {
-  return listOf(
-    LabelConfig(key = ConfigKeys.MAX_TOKENS, defaultValue = "$defaultMaxToken"),
-    NumberSliderConfig(
-      key = ConfigKeys.TOPK,
-      sliderMin = 5f,
-      sliderMax = 100f,
-      defaultValue = defaultTopK.toFloat(),
-      valueType = ValueType.INT,
-    ),
-    NumberSliderConfig(
-      key = ConfigKeys.TOPP,
-      sliderMin = 0.0f,
-      sliderMax = 1.0f,
-      defaultValue = defaultTopP,
-      valueType = ValueType.FLOAT,
-    ),
-    NumberSliderConfig(
-      key = ConfigKeys.TEMPERATURE,
-      sliderMin = 0.0f,
-      sliderMax = 2.0f,
-      defaultValue = defaultTemperature,
-      valueType = ValueType.FLOAT,
-    ),
-    SegmentedButtonConfig(
-      key = ConfigKeys.ACCELERATOR,
-      defaultValue = accelerators[0].label,
-      options = accelerators.map { it.label },
-    ),
-  )
+  var maxTokensConfig: Config =
+    LabelConfig(key = ConfigKeys.MAX_TOKENS, defaultValue = "$defaultMaxToken")
+  if (defaultMaxContextLength != null) {
+    maxTokensConfig =
+      NumberSliderConfig(
+        key = ConfigKeys.MAX_TOKENS,
+        sliderMin = 2000f,
+        sliderMax = defaultMaxContextLength.toFloat(),
+        defaultValue = defaultMaxToken.toFloat(),
+        valueType = ValueType.INT,
+      )
+  }
+  val configs =
+    listOf(
+        maxTokensConfig,
+        NumberSliderConfig(
+          key = ConfigKeys.TOPK,
+          sliderMin = 5f,
+          sliderMax = 100f,
+          defaultValue = defaultTopK.toFloat(),
+          valueType = ValueType.INT,
+        ),
+        NumberSliderConfig(
+          key = ConfigKeys.TOPP,
+          sliderMin = 0.0f,
+          sliderMax = 1.0f,
+          defaultValue = defaultTopP,
+          valueType = ValueType.FLOAT,
+        ),
+        NumberSliderConfig(
+          key = ConfigKeys.TEMPERATURE,
+          sliderMin = 0.0f,
+          sliderMax = 2.0f,
+          defaultValue = defaultTemperature,
+          valueType = ValueType.FLOAT,
+        ),
+        SegmentedButtonConfig(
+          key = ConfigKeys.ACCELERATOR,
+          defaultValue = accelerators[0].label,
+          options = accelerators.map { it.label },
+        ),
+      )
+      .toMutableList()
+
+  if (supportThinking) {
+    configs.add(BooleanSwitchConfig(key = ConfigKeys.ENABLE_THINKING, defaultValue = false))
+  }
+  return configs
 }
 
 /**

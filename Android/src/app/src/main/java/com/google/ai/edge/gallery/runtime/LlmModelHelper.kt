@@ -20,9 +20,11 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.ToolProvider
 import kotlinx.coroutines.CoroutineScope
 
-typealias ResultListener = (partialResult: String, done: Boolean) -> Unit
+typealias ResultListener =
+  (partialResult: String, done: Boolean, partialThinkingResult: String?) -> Unit
 
 typealias CleanUpListener = () -> Unit
 
@@ -53,7 +55,7 @@ interface LlmModelHelper {
     supportAudio: Boolean,
     onDone: (String) -> Unit,
     systemInstruction: Contents? = null,
-    tools: List<Any> = listOf(),
+    tools: List<ToolProvider> = listOf(),
     enableConversationConstrainedDecoding: Boolean = false,
     coroutineScope: CoroutineScope? = null,
   )
@@ -73,7 +75,7 @@ interface LlmModelHelper {
     supportImage: Boolean = false,
     supportAudio: Boolean = false,
     systemInstruction: Contents? = null,
-    tools: List<Any> = listOf(),
+    tools: List<ToolProvider> = listOf(),
     enableConversationConstrainedDecoding: Boolean = false,
   )
 
@@ -96,6 +98,7 @@ interface LlmModelHelper {
    * @param images optional list of images provided as input context.
    * @param audioClips optional list of audio clips provided as input context.
    * @param coroutineScope optional coroutine scope for async inference execution.
+   * @param extraContext optional extra context for inference.
    */
   fun runInference(
     model: Model,
@@ -106,6 +109,7 @@ interface LlmModelHelper {
     images: List<Bitmap> = listOf(),
     audioClips: List<ByteArray> = listOf(),
     coroutineScope: CoroutineScope? = null,
+    extraContext: Map<String, String>? = null,
   )
 
   /**

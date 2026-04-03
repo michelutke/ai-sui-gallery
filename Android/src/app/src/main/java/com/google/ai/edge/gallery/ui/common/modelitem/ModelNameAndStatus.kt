@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.google.ai.edge.gallery.R
@@ -42,6 +43,7 @@ import com.google.ai.edge.gallery.data.MODEL_INFO_ICON_SIZE
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.ModelDownloadStatus
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
+import com.google.ai.edge.gallery.data.RuntimeType
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.ui.common.ClickableLink
 import com.google.ai.edge.gallery.ui.common.humanReadableSize
@@ -99,81 +101,90 @@ fun ModelNameAndStatus(
       maxLines = 1,
       overflow = TextOverflow.MiddleEllipsis,
       style = MaterialTheme.typography.titleMedium,
+      modifier = Modifier.padding(end = 64.dp),
     )
 
     // Status icon + size + download progress details.
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-      // Status icon.
-      StatusIcon(
-        task = task,
-        model = model,
-        downloadStatus = downloadStatus,
-        modifier = Modifier.padding(end = 4.dp),
-      )
+    var showDownloadStatusUI = true
 
-      // Failure message.
-      if (downloadStatus != null && downloadStatus.status == ModelDownloadStatusType.FAILED) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Text(
-            downloadStatus.errorMessage,
-            color = MaterialTheme.colorScheme.error,
-            style = labelSmallNarrow,
-            overflow = TextOverflow.Ellipsis,
-          )
-        }
-      }
+    if (showDownloadStatusUI) {
+      Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+        // Status icon.
+        StatusIcon(
+          task = task,
+          model = model,
+          downloadStatus = downloadStatus,
+          modifier = Modifier.padding(end = 4.dp),
+        )
 
-      // Status label
-      else {
-        var sizeLabel = model.totalBytes.humanReadableSize()
-        if (model.localFileRelativeDirPathOverride.isNotEmpty()) {
-          sizeLabel = "{ext_files_dir}/${model.localFileRelativeDirPathOverride}"
-        }
-
-        // Populate the status label.
-        if (downloadStatus != null) {
-          // For in-progress model, show {receivedSize} / {totalSize} - {rate} - {remainingTime}
-          if (inProgress || isPartiallyDownloaded) {
-            var totalSize = downloadStatus.totalBytes
-            if (totalSize == 0L) {
-              totalSize = model.totalBytes
-            }
-            sizeLabel =
-              "${downloadStatus.receivedBytes.humanReadableSize(extraDecimalForGbAndAbove = true)} of ${totalSize.humanReadableSize()}"
-            if (downloadStatus.bytesPerSecond > 0) {
-              sizeLabel = "$sizeLabel · ${downloadStatus.bytesPerSecond.humanReadableSize()} / s"
-              // if (downloadStatus.remainingMs >= 0) {
-              //   sizeLabel =
-              //     "$sizeLabel\n${downloadStatus.remainingMs.formatToHourMinSecond()} left"
-              // }
-            }
-            if (isPartiallyDownloaded) {
-              sizeLabel = "$sizeLabel (resuming...)"
-            }
-            curDownloadProgress =
-              downloadStatus.receivedBytes.toFloat() / downloadStatus.totalBytes.toFloat()
-            if (curDownloadProgress.isNaN()) {
-              curDownloadProgress = 0f
-            }
-          }
-          // Status for unzipping.
-          else if (downloadStatus.status == ModelDownloadStatusType.UNZIPPING) {
-            sizeLabel = "Unzipping..."
-          }
-        }
-
-        Column(
-          horizontalAlignment = if (isExpanded) Alignment.CenterHorizontally else Alignment.Start
-        ) {
-          for ((index, line) in sizeLabel.split("\n").withIndex()) {
+        // Failure message.
+        if (downloadStatus != null && downloadStatus.status == ModelDownloadStatusType.FAILED) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-              line,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              maxLines = 1,
-              style = MaterialTheme.typography.bodyMedium,
-              overflow = TextOverflow.Visible,
-              modifier = Modifier.offset(y = if (index == 0) 0.dp else (-1).dp),
+              downloadStatus.errorMessage,
+              color = MaterialTheme.colorScheme.error,
+              style = labelSmallNarrow,
+              overflow = TextOverflow.Ellipsis,
             )
+          }
+        }
+
+        // Status label
+        else {
+          var sizeLabel = model.totalBytes.humanReadableSize()
+          if (model.localFileRelativeDirPathOverride.isNotEmpty()) {
+            sizeLabel = "{ext_files_dir}/${model.localFileRelativeDirPathOverride}"
+          }
+
+          // Populate the status label.
+          if (downloadStatus != null) {
+            // For in-progress model, show {receivedSize} / {totalSize} - {rate} - {remainingTime}
+            if (inProgress || isPartiallyDownloaded) {
+              var totalSize = downloadStatus.totalBytes
+              if (totalSize == 0L) {
+                totalSize = model.totalBytes
+              }
+              sizeLabel =
+                "${downloadStatus.receivedBytes.humanReadableSize(extraDecimalForGbAndAbove = true)} of ${totalSize.humanReadableSize()}"
+              if (downloadStatus.bytesPerSecond > 0) {
+                sizeLabel = "$sizeLabel · ${downloadStatus.bytesPerSecond.humanReadableSize()} / s"
+                // if (downloadStatus.remainingMs >= 0) {
+                //   sizeLabel =
+                //     "$sizeLabel\n${downloadStatus.remainingMs.formatToHourMinSecond()} left"
+                // }
+              }
+              if (isPartiallyDownloaded) {
+                sizeLabel = "$sizeLabel (resuming...)"
+              }
+              curDownloadProgress =
+                downloadStatus.receivedBytes.toFloat() / downloadStatus.totalBytes.toFloat()
+              if (curDownloadProgress.isNaN()) {
+                curDownloadProgress = 0f
+              }
+            }
+            // Status for unzipping.
+            else if (downloadStatus.status == ModelDownloadStatusType.UNZIPPING) {
+              sizeLabel = "Unzipping..."
+            }
+          }
+
+          Column(
+            horizontalAlignment = if (isExpanded) Alignment.CenterHorizontally else Alignment.Start
+          ) {
+            for ((index, line) in sizeLabel.split("\n").withIndex()) {
+              Text(
+                line,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                style =
+                  MaterialTheme.typography.bodyMedium.copy(
+                    // This stops numbers from "jumping around" when being updated.
+                    fontFeatureSettings = "tnum"
+                  ),
+                overflow = TextOverflow.Visible,
+                modifier = Modifier.offset(y = if (index == 0) 0.dp else (-1).dp),
+              )
+            }
           }
         }
       }
@@ -188,7 +199,11 @@ fun ModelNameAndStatus(
           contentDescription = null,
           modifier = Modifier.size(MODEL_INFO_ICON_SIZE).offset(y = 1.dp),
         )
-        ClickableLink(model.learnMoreUrl, linkText = stringResource(R.string.learn_more))
+        ClickableLink(
+          model.learnMoreUrl,
+          linkText = stringResource(R.string.learn_more),
+          textAlign = TextAlign.Left,
+        )
       }
     }
   }

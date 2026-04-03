@@ -16,8 +16,6 @@
 
 package com.google.ai.edge.gallery.ui.navigation
 
-import androidx.hilt.navigation.compose.hiltViewModel
-
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -31,12 +29,17 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.Scaffold
@@ -57,6 +60,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -77,11 +81,13 @@ import com.google.ai.edge.gallery.ui.common.ErrorDialog
 import com.google.ai.edge.gallery.ui.common.ModelPageAppBar
 import com.google.ai.edge.gallery.ui.common.chat.ModelDownloadStatusInfoPanel
 import com.google.ai.edge.gallery.ui.home.HomeScreen
+import com.google.ai.edge.gallery.ui.home.PromoScreenGm4
 import com.google.ai.edge.gallery.ui.modelmanager.GlobalModelManager
 import com.google.ai.edge.gallery.ui.modelmanager.ModelInitializationStatusType
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManager
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val TAG = "AGGalleryNavGraph"
@@ -182,21 +188,64 @@ fun GalleryNavHost(
   ) {
     // Home screen.
     composable(route = ROUTE_HOMESCREEN) {
-      HomeScreen(
-        modelManagerViewModel = modelManagerViewModel,
-        tosViewModel = hiltViewModel(),
-        enableAnimation = enableHomeScreenAnimation,
-        navigateToTaskScreen = { task ->
-          pickedTask = task
-          enableModelListAnimation = true
-          navController.navigate(ROUTE_MODEL_LIST)
-          firebaseAnalytics?.logEvent(
-            GalleryEvent.CAPABILITY_SELECT.id,
-            Bundle().apply { putString("capability_name", task.id) },
+      // Create a state to trigger PromoScreen fade in animation.
+      val promoId = "gm4"
+      Box(modifier = modifier.fillMaxSize()) {
+        var promoDismissed by remember { mutableStateOf(false) }
+
+        val homeScreenContent: @Composable () -> Unit = {
+          HomeScreen(
+            modelManagerViewModel = modelManagerViewModel,
+            tosViewModel = hiltViewModel(),
+            enableAnimation = enableHomeScreenAnimation,
+            navigateToTaskScreen = { task ->
+              pickedTask = task
+              enableModelListAnimation = true
+              navController.navigate(ROUTE_MODEL_LIST)
+              firebaseAnalytics?.logEvent(
+                GalleryEvent.CAPABILITY_SELECT.id,
+                Bundle().apply { putString("capability_name", task.id) },
+              )
+            },
+            onModelsClicked = { navController.navigate(ROUTE_MODEL_MANAGER) },
+            gm4 = true,
           )
-        },
-        onModelsClicked = { navController.navigate(ROUTE_MODEL_MANAGER) },
-      )
+        }
+
+        // Show home page directly if promo has been viewed.
+        if (modelManagerViewModel.dataStoreRepository.hasViewedPromo(promoId = promoId)) {
+          homeScreenContent()
+        }
+        // If the promo has not been viewed, show promo screen first.
+        else {
+          AnimatedContent(
+            targetState = promoDismissed,
+            label = "PromoToHome",
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+          ) { dismissed ->
+            if (dismissed) {
+              homeScreenContent()
+            } else {
+              var startAnimation by remember { mutableStateOf(false) }
+              LaunchedEffect(Unit) {
+                delay(0L)
+                startAnimation = true
+              }
+              AnimatedVisibility(
+                visible = startAnimation,
+                enter = scaleIn(initialScale = 1.05f, animationSpec = tween(durationMillis = 1000)),
+              ) {
+                PromoScreenGm4(
+                  onDismiss = {
+                    modelManagerViewModel.dataStoreRepository.addViewedPromoId(promoId = promoId)
+                    promoDismissed = true
+                  }
+                )
+              }
+            }
+          }
+        }
+      }
     }
 
     // Model list.
@@ -285,12 +334,14 @@ fun GalleryNavHost(
                   navController.navigateUp()
 
                   // clean up all models.
-                  scope.launch(Dispatchers.Default) {
-                    for (curModel in customTask.task.models) {
+                  for (curModel in customTask.task.models) {
+                    val instanceToCleanUp = curModel.instance
+                    scope.launch(Dispatchers.Default) {
                       modelManagerViewModel.cleanupModel(
                         context = context,
                         task = customTask.task,
                         model = curModel,
+                        instanceToCleanUp = instanceToCleanUp,
                       )
                     }
                   }
@@ -469,6 +520,7 @@ private fun CustomTaskScreen(
           onConfigChanged = { _, _ -> },
           onBackClicked = { handleNavigateUp() },
           onModelSelected = { prevModel, newSelectedModel ->
+            val instanceToCleanUp = prevModel.instance
             scope.launch(Dispatchers.Default) {
               // Clean up prev model.
               if (prevModel.name != newSelectedModel.name) {
@@ -476,6 +528,7 @@ private fun CustomTaskScreen(
                   context = context,
                   task = task,
                   model = prevModel,
+                  instanceToCleanUp = instanceToCleanUp,
                 )
               }
 

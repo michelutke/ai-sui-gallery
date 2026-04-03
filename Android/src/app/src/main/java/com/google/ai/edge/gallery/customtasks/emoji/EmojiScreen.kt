@@ -105,7 +105,7 @@ fun EmojiScreen(
             LlmChatModelHelper.runInference(
               model = model,
               input = prompt,
-              resultListener = { partialResult, done ->
+              resultListener = { partialResult, done, _ ->
                 accumulated.append(partialResult)
                 if (done) {
                   val emoji = accumulated.toString().firstEmoji()

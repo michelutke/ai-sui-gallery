@@ -28,6 +28,7 @@ import com.google.ai.edge.gallery.ui.common.chat.ChatMessageAudioClip
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageError
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageLoading
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageText
+import com.google.ai.edge.gallery.ui.common.chat.ChatMessageThinking
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageType
 import com.google.ai.edge.gallery.ui.common.chat.ChatMessageWarning
 import com.google.ai.edge.gallery.ui.common.chat.ChatSide
@@ -35,6 +36,7 @@ import com.google.ai.edge.gallery.ui.common.chat.ChatViewModel
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.ExperimentalApi
+import com.google.ai.edge.litertlm.ToolProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,7 @@ open class LlmChatViewModelBase() : ChatViewModel() {
     onFirstToken: (Model) -> Unit = {},
     onDone: () -> Unit = {},
     onError: (String) -> Unit,
+    allowThinking: Boolean = false,
   ) {
     val accelerator = model.getStringConfigValue(key = ConfigKeys.ACCELERATOR, defaultValue = "")
     viewModelScope.launch(Dispatchers.Default) {
@@ -78,53 +81,122 @@ open class LlmChatViewModelBase() : ChatViewModel() {
       val start = System.currentTimeMillis()
 
       try {
-        val resultListener: (String, Boolean) -> Unit = { partialResult, done ->
-          if (partialResult.startsWith("<ctrl")) {
-            // Do nothing. Ignore control tokens.
-          } else {
-            // Remove the last message if it is a "loading" message.
-            // This will only be done once.
-            val lastMessage = getLastMessage(model = model)
-            if (lastMessage?.type == ChatMessageType.LOADING) {
-              removeLastMessage(model = model)
-            }
-            if (
-              lastMessage?.type == ChatMessageType.LOADING ||
-                lastMessage?.type == ChatMessageType.COLLAPSABLE_PROGRESS_PANEL
-            ) {
-              // Add an empty message that will receive streaming results.
-              addMessage(
-                model = model,
-                message =
-                  ChatMessageText(
-                    content = "",
-                    side = ChatSide.AGENT,
-                    accelerator = accelerator,
-                    hideSenderLabel = lastMessage.type == ChatMessageType.COLLAPSABLE_PROGRESS_PANEL,
-                  ),
-              )
-            }
+        val resultListener: (String, Boolean, String?) -> Unit =
+          { partialResult, done, partialThinkingResult ->
+            if (partialResult.startsWith("<ctrl")) {
+              // Do nothing. Ignore control tokens.
+            } else {
+              // Remove the last message if it is a "loading" message.
+              // This will only be done once.
+              val lastMessage = getLastMessage(model = model)
+              val wasLoading = lastMessage?.type == ChatMessageType.LOADING
+              if (wasLoading) {
+                removeLastMessage(model = model)
+              }
 
-            // Incrementally update the streamed partial results.
-            val latencyMs: Long = if (done) System.currentTimeMillis() - start else -1
-            updateLastTextMessageContentIncrementally(
-              model = model,
-              partialContent = partialResult,
-              latencyMs = latencyMs.toFloat(),
-            )
+              val thinkingText = partialThinkingResult
+              val isThinking = thinkingText != null && thinkingText.isNotEmpty()
+              var currentLastMessage = getLastMessage(model = model)
 
-            if (firstRun) {
-              firstRun = false
-              setPreparing(false)
-              onFirstToken(model)
-            }
+              // If thinking is enabled, add a thinking message.
+              if (isThinking) {
+                if (currentLastMessage?.type != ChatMessageType.THINKING) {
+                  addMessage(
+                    model = model,
+                    message =
+                      ChatMessageThinking(
+                        content = "",
+                        inProgress = true,
+                        side = ChatSide.AGENT,
+                        accelerator = accelerator,
+                        hideSenderLabel =
+                          currentLastMessage?.type == ChatMessageType.COLLAPSABLE_PROGRESS_PANEL,
+                      ),
+                  )
+                }
+                updateLastThinkingMessageContentIncrementally(
+                  model = model,
+                  partialContent = thinkingText!!,
+                )
+              } else {
+                if (currentLastMessage?.type == ChatMessageType.THINKING) {
+                  val thinkingMsg = currentLastMessage as ChatMessageThinking
+                  if (thinkingMsg.inProgress) {
+                    replaceLastMessage(
+                      model = model,
+                      message =
+                        ChatMessageThinking(
+                          content = thinkingMsg.content,
+                          inProgress = false,
+                          side = thinkingMsg.side,
+                          accelerator = thinkingMsg.accelerator,
+                          hideSenderLabel = thinkingMsg.hideSenderLabel,
+                        ),
+                      type = ChatMessageType.THINKING,
+                    )
+                  }
+                }
+                currentLastMessage = getLastMessage(model = model)
+                if (
+                  currentLastMessage?.type != ChatMessageType.TEXT ||
+                    currentLastMessage.side != ChatSide.AGENT
+                ) {
+                  // Add an empty message that will receive streaming results.
+                  addMessage(
+                    model = model,
+                    message =
+                      ChatMessageText(
+                        content = "",
+                        side = ChatSide.AGENT,
+                        accelerator = accelerator,
+                        hideSenderLabel =
+                          currentLastMessage?.type == ChatMessageType.COLLAPSABLE_PROGRESS_PANEL ||
+                            currentLastMessage?.type == ChatMessageType.THINKING,
+                      ),
+                  )
+                }
 
-            if (done) {
-              setInProgress(false)
-              onDone()
+                // Incrementally update the streamed partial results.
+                val latencyMs: Long = if (done) System.currentTimeMillis() - start else -1
+                if (partialResult.isNotEmpty() || wasLoading || done) {
+                  updateLastTextMessageContentIncrementally(
+                    model = model,
+                    partialContent = partialResult,
+                    latencyMs = latencyMs.toFloat(),
+                  )
+                }
+              }
+
+              if (firstRun) {
+                firstRun = false
+                setPreparing(false)
+                onFirstToken(model)
+              }
+
+              if (done) {
+                val finalLastMessage = getLastMessage(model = model)
+                if (finalLastMessage?.type == ChatMessageType.THINKING) {
+                  val thinkingMsg = finalLastMessage as ChatMessageThinking
+                  if (thinkingMsg.inProgress) {
+                    replaceLastMessage(
+                      model = model,
+                      message =
+                        ChatMessageThinking(
+                          content = thinkingMsg.content,
+                          inProgress = false,
+                          side = thinkingMsg.side,
+                          accelerator = thinkingMsg.accelerator,
+                          hideSenderLabel = thinkingMsg.hideSenderLabel,
+                        ),
+                      type = ChatMessageType.THINKING,
+                    )
+                  }
+                }
+                setInProgress(false)
+                onDone()
+              }
             }
           }
-        }
 
         val cleanUpListener: () -> Unit = {
           setInProgress(false)
@@ -138,6 +210,11 @@ open class LlmChatViewModelBase() : ChatViewModel() {
           onError(message)
         }
 
+        val enableThinking =
+          allowThinking &&
+            model.getBooleanConfigValue(key = ConfigKeys.ENABLE_THINKING, defaultValue = false)
+        val extraContext = if (enableThinking) mapOf("enable_thinking" to "true") else null
+
         model.runtimeHelper.runInference(
           model = model,
           input = input,
@@ -147,6 +224,7 @@ open class LlmChatViewModelBase() : ChatViewModel() {
           cleanUpListener = cleanUpListener,
           onError = errorListener,
           coroutineScope = viewModelScope,
+          extraContext = extraContext,
         )
       } catch (e: Exception) {
         Log.e(TAG, "Error occurred while running inference", e)
@@ -171,8 +249,11 @@ open class LlmChatViewModelBase() : ChatViewModel() {
     task: Task,
     model: Model,
     systemInstruction: Contents? = null,
-    tools: List<Any> = listOf(),
+    tools: List<ToolProvider> = listOf(),
+    supportImage: Boolean = false,
+    supportAudio: Boolean = false,
     onDone: () -> Unit = {},
+    enableConversationConstrainedDecoding: Boolean = false,
   ) {
     viewModelScope.launch(Dispatchers.Default) {
       setIsResettingSession(true)
@@ -181,18 +262,13 @@ open class LlmChatViewModelBase() : ChatViewModel() {
 
       while (true) {
         try {
-          val supportImage =
-            model.llmSupportImage &&
-              task.id == com.google.ai.edge.gallery.data.BuiltInTaskId.LLM_ASK_IMAGE
-          val supportAudio =
-            model.llmSupportAudio &&
-              task.id == com.google.ai.edge.gallery.data.BuiltInTaskId.LLM_ASK_AUDIO
           model.runtimeHelper.resetConversation(
             model = model,
             supportImage = supportImage,
             supportAudio = supportAudio,
             systemInstruction = systemInstruction,
             tools = tools,
+            enableConversationConstrainedDecoding = enableConversationConstrainedDecoding,
           )
           break
         } catch (e: Exception) {
@@ -205,7 +281,12 @@ open class LlmChatViewModelBase() : ChatViewModel() {
     }
   }
 
-  fun runAgain(model: Model, message: ChatMessageText, onError: (String) -> Unit) {
+  fun runAgain(
+    model: Model,
+    message: ChatMessageText,
+    onError: (String) -> Unit,
+    allowThinking: Boolean = false,
+  ) {
     viewModelScope.launch(Dispatchers.Default) {
       // Wait for model to be initialized.
       while (model.instance == null) {
@@ -216,7 +297,12 @@ open class LlmChatViewModelBase() : ChatViewModel() {
       addMessage(model = model, message = message.clone())
 
       // Run inference.
-      generateResponse(model = model, input = message.content, onError = onError)
+      generateResponse(
+        model = model,
+        input = message.content,
+        onError = onError,
+        allowThinking = allowThinking,
+      )
     }
   }
 

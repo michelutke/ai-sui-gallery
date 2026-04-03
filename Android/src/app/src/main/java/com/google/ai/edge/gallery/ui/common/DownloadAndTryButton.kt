@@ -78,6 +78,7 @@ import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.ModelDownloadStatus
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
+import com.google.ai.edge.gallery.data.RuntimeType
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.ui.common.tos.GemmaTermsOfUseDialog
 import com.google.ai.edge.gallery.ui.common.tos.TosViewModel
@@ -91,6 +92,9 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "AGDownloadAndTryButton"
 private const val SYSTEM_RESERVED_MEMORY_IN_BYTES = 3 * (1L shl 30)
+
+private val MODEL_NAMES_TO_SHOW_GEMMA_LICENSES =
+  setOf("Gemma-3n-E2B-it", "Gemma-3n-E4B-it", "Gemma3-1B-IT")
 
 /**
  * Handles the "Download & Try it" button click, managing the model download process based on
@@ -387,6 +391,7 @@ fun DownloadAndTryButton(
         // Check TOS before downloading.
         if (
           model.url.startsWith("https://dl.google.com/google-ai-edge-gallery/") &&
+            MODEL_NAMES_TO_SHOW_GEMMA_LICENSES.contains(model.name) &&
             !tosViewModel.getIsGemmaTermsOfUseAccepted()
         ) {
           showGemmaTermsOfUseDialog = true
@@ -396,7 +401,10 @@ fun DownloadAndTryButton(
       },
     ) {
       val textColor =
-        if (!downloadSucceeded && model.localFileRelativeDirPathOverride.isEmpty()) {
+        if (!enabled) {
+          // Define the color for disabled button.
+          MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+        } else if (!downloadSucceeded && model.localFileRelativeDirPathOverride.isEmpty()) {
           MaterialTheme.colorScheme.onSurface
         } else if (task != null) {
           Color.White
@@ -408,8 +416,11 @@ fun DownloadAndTryButton(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
         Icon(
-          if (needToDownloadFirst) Icons.Outlined.FileDownload
-          else Icons.AutoMirrored.Rounded.ArrowForward,
+          if (needToDownloadFirst) {
+            Icons.Outlined.FileDownload
+          } else {
+            Icons.AutoMirrored.Rounded.ArrowForward
+          },
           contentDescription = null,
           tint = textColor,
         )
@@ -466,7 +477,11 @@ fun DownloadAndTryButton(
       } else {
         Text(
           "${(curDownloadProgress * 100).toInt()}%",
-          style = MaterialTheme.typography.bodyMedium,
+          style =
+            MaterialTheme.typography.bodyMedium.copy(
+              // This stops numbers from "jumping around" when being updated.
+              fontFeatureSettings = "tnum"
+            ),
           color = MaterialTheme.colorScheme.onSurface,
           modifier = Modifier.padding(start = 12.dp).width(if (compact) 32.dp else 44.dp),
         )

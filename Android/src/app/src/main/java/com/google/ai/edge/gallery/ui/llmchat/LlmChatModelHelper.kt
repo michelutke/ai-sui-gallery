@@ -43,6 +43,7 @@ import com.google.ai.edge.litertlm.ExperimentalFlags
 import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.MessageCallback
 import com.google.ai.edge.litertlm.SamplerConfig
+import com.google.ai.edge.litertlm.ToolProvider
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -63,7 +64,7 @@ object LlmChatModelHelper : LlmModelHelper {
     supportAudio: Boolean,
     onDone: (String) -> Unit,
     systemInstruction: Contents?,
-    tools: List<Any>,
+    tools: List<ToolProvider>,
     enableConversationConstrainedDecoding: Boolean,
     coroutineScope: CoroutineScope?,
   ) {
@@ -85,7 +86,8 @@ object LlmChatModelHelper : LlmModelHelper {
       when (visionAccelerator) {
         Accelerator.CPU.label -> Backend.CPU()
         Accelerator.GPU.label -> Backend.GPU()
-        Accelerator.NPU.label -> Backend.NPU()
+        Accelerator.NPU.label ->
+          Backend.NPU(nativeLibraryDir = context.applicationInfo.nativeLibraryDir)
         else -> Backend.GPU()
       }
     val shouldEnableImage = supportImage
@@ -94,14 +96,11 @@ object LlmChatModelHelper : LlmModelHelper {
       when (accelerator) {
         Accelerator.CPU.label -> Backend.CPU()
         Accelerator.GPU.label -> Backend.GPU()
-        Accelerator.NPU.label -> Backend.NPU()
+        Accelerator.NPU.label ->
+          Backend.NPU(nativeLibraryDir = context.applicationInfo.nativeLibraryDir)
         else -> Backend.CPU()
       }
     Log.d(TAG, "Preferred backend: $preferredBackend")
-
-    if (preferredBackend is Backend.NPU) {
-      ExperimentalFlags.npuLibrariesDir = context.applicationInfo.nativeLibraryDir
-    }
 
     val modelPath = model.getPath(context = context)
     val engineConfig =
@@ -156,7 +155,7 @@ object LlmChatModelHelper : LlmModelHelper {
     supportImage: Boolean,
     supportAudio: Boolean,
     systemInstruction: Contents?,
-    tools: List<Any>,
+    tools: List<ToolProvider>,
     enableConversationConstrainedDecoding: Boolean,
   ) {
     try {
@@ -250,6 +249,7 @@ object LlmChatModelHelper : LlmModelHelper {
     images: List<Bitmap>,
     audioClips: List<ByteArray>,
     coroutineScope: CoroutineScope?,
+    extraContext: Map<String, String>?,
   ) {
     val instance = model.instance as? LlmModelInstance
     if (instance == null) {
@@ -280,23 +280,24 @@ object LlmChatModelHelper : LlmModelHelper {
       Contents.of(contents),
       object : MessageCallback {
         override fun onMessage(message: Message) {
-          resultListener(message.toString(), false)
+          resultListener(message.toString(), false, message.channels["thought"])
         }
 
         override fun onDone() {
-          resultListener("", true)
+          resultListener("", true, null)
         }
 
         override fun onError(throwable: Throwable) {
           if (throwable is CancellationException) {
             Log.i(TAG, "The inference is cancelled.")
-            resultListener("", true)
+            resultListener("", true, null)
           } else {
             Log.e(TAG, "onError", throwable)
             onError("Error: ${throwable.message}")
           }
         }
       },
+      extraContext ?: emptyMap(),
     )
   }
 

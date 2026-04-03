@@ -53,6 +53,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.Model
+import com.google.ai.edge.gallery.data.ModelDownloadStatusType
+import com.google.ai.edge.gallery.data.RuntimeType
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.ui.common.MarkdownText
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
@@ -113,26 +115,26 @@ fun ModelItem(
 
   Box(modifier = boxModifier) {
     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      Box(
         modifier = Modifier.semantics { isTraversalGroup = true },
+        contentAlignment = Alignment.CenterStart,
       ) {
         ModelNameAndStatus(
           model = model,
           task = task,
           downloadStatus = downloadStatus,
           isExpanded = isExpanded,
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.fillMaxWidth(),
         )
         // Button to delete model and expand/collapse button at the right.
-        Row(verticalAlignment = Alignment.Top) {
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.align(Alignment.TopEnd)) {
           if (model.localFileRelativeDirPathOverride.isEmpty()) {
             DeleteModelButton(
               model = model,
               modelManagerViewModel = modelManagerViewModel,
               downloadStatus = downloadStatus,
-              showDeleteButton = showDeleteButton,
               modifier = Modifier.offset(y = (-12).dp, x = if (model.imported) 12.dp else 0.dp),
+              showDeleteButton = showDeleteButton
             )
           }
           if (!model.imported) {
@@ -151,13 +153,15 @@ fun ModelItem(
       AnimatedContent(isExpanded, label = "item_layout_transition") { targetState ->
         // Show description when expanded.
         if (targetState) {
-          if (model.info.isNotEmpty()) {
-            MarkdownText(
-              model.info,
-              smallFontSize = true,
-              textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.padding(top = 12.dp),
-            )
+          Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            if (model.info.isNotEmpty()) {
+              MarkdownText(
+                model.info,
+                smallFontSize = true,
+                textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 12.dp),
+              )
+            }
           }
         }
       }

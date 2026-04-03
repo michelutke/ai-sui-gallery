@@ -29,6 +29,7 @@ data class DefaultConfig(
   @SerializedName("temperature") val temperature: Float?,
   @SerializedName("accelerators") val accelerators: String?,
   @SerializedName("visionAccelerator") val visionAccelerator: String?,
+  @SerializedName("maxContextLength") val maxContextLength: Int?,
   @SerializedName("maxTokens") val maxTokens: Int?,
 )
 
@@ -55,6 +56,7 @@ data class AllowedModel(
   val llmSupportAudio: Boolean? = null,
   val llmSupportTinyGarden: Boolean? = null,
   val llmSupportMobileActions: Boolean? = null,
+  val llmSupportThinking: Boolean? = null,
   val minDeviceMemoryInGb: Int? = null,
   val bestForTaskTypes: List<String>? = null,
   val localModelFilePathOverride: String? = null,
@@ -95,6 +97,7 @@ data class AllowedModel(
         taskTypes.contains(BuiltInTaskId.LLM_TINY_GARDEN)
     var configs: MutableList<Config> = mutableListOf()
     var llmMaxToken = 1024
+    var llmMaxContextLength: Int? = null
     var accelerators: List<Accelerator> = DEFAULT_ACCELERATORS
     var visionAccelerator: Accelerator = DEFAULT_VISION_ACCELERATOR
     if (isLlmModel) {
@@ -102,6 +105,7 @@ data class AllowedModel(
       val defaultTopP: Float = defaultConfig.topP ?: DEFAULT_TOPP
       val defaultTemperature: Float = defaultConfig.temperature ?: DEFAULT_TEMPERATURE
       llmMaxToken = defaultConfig.maxTokens ?: 1024
+      llmMaxContextLength = defaultConfig.maxContextLength
       if (defaultConfig.accelerators != null) {
         val items = defaultConfig.accelerators.split(",")
         accelerators = mutableListOf()
@@ -131,7 +135,8 @@ data class AllowedModel(
       }
       val npuOnly = accelerators.size == 1 && accelerators[0] == Accelerator.NPU
       configs =
-        if (npuOnly) {
+        (
+          if (npuOnly) {
             createLlmChatConfigsForNpuModel(
               defaultMaxToken = llmMaxToken,
               accelerators = accelerators,
@@ -142,11 +147,15 @@ data class AllowedModel(
               defaultTopP = defaultTopP,
               defaultTemperature = defaultTemperature,
               defaultMaxToken = llmMaxToken,
+              defaultMaxContextLength = llmMaxContextLength,
               accelerators = accelerators,
+              supportThinking = llmSupportThinking == true,
             )
-          }
+          })
           .toMutableList()
     }
+
+    var learnMoreUrl = "https://huggingface.co/${modelId}"
 
     // Misc.
     var showBenchmarkButton = true
@@ -166,11 +175,12 @@ data class AllowedModel(
       downloadFileName = downloadedFileName,
       showBenchmarkButton = showBenchmarkButton,
       showRunAgainButton = showRunAgainButton,
-      learnMoreUrl = "https://huggingface.co/${modelId}",
+      learnMoreUrl = learnMoreUrl,
       llmSupportImage = llmSupportImage == true,
       llmSupportAudio = llmSupportAudio == true,
       llmSupportTinyGarden = llmSupportTinyGarden == true,
       llmSupportMobileActions = llmSupportMobileActions == true,
+      llmSupportThinking = llmSupportThinking == true,
       llmMaxToken = llmMaxToken,
       accelerators = accelerators,
       visionAccelerator = visionAccelerator,
@@ -187,4 +197,6 @@ data class AllowedModel(
 }
 
 /** The model allowlist. */
-data class ModelAllowlist(val models: List<AllowedModel>)
+data class ModelAllowlist(
+  val models: List<AllowedModel>,
+)

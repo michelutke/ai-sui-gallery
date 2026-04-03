@@ -58,6 +58,7 @@ message LlmConfig {
   bool support_audio = 7;
   bool support_tiny_garden = 8;
   bool support_mobile_actions = 9;
+  bool support_thinking = 10;
 }
 
 message Settings {
@@ -75,8 +76,10 @@ message Settings {
   // Feature flags
   map<string, bool> feature_flags = 9;
   // copybara:strip_end
+
+  repeated string viewed_promo_id = 10;
   // BCP 47 language tag for in-app locale override (empty = system default).
-  string language_tag = 10;
+  string language_tag = 11;
 }
 
 message UserData {
