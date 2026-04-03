@@ -17,7 +17,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "emoji_generator", "insurance_card_scan"],
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan"],
       "bestForTaskTypes": ["llm_chat", "llm_ask_image", "llm_ask_audio"]
     },
     {
@@ -37,7 +37,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "Gemma-3n-E2B-it",
@@ -56,7 +56,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "emoji_generator", "insurance_card_scan"],
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan"],
       "bestForTaskTypes": ["llm_ask_image", "llm_ask_audio"]
     },
     {
@@ -76,7 +76,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "Gemma3-1B-IT",
@@ -93,7 +93,7 @@
         "maxTokens": 1024,
         "accelerators": "gpu,cpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "Gemma3-270M-IT",
@@ -110,7 +110,7 @@
         "maxTokens": 1024,
         "accelerators": "gpu,cpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "emoji_generator"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator"]
     },
     {
       "name": "Qwen2.5-1.5B-Instruct",
@@ -127,7 +127,7 @@
         "maxTokens": 4096,
         "accelerators": "gpu,cpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "Qwen3-0.6B",
@@ -144,7 +144,7 @@
         "maxTokens": 2048,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "Qwen3.5-0.8B",
@@ -162,7 +162,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "DeepSeek-R1-Distill-Qwen-1.5B",
@@ -179,7 +179,7 @@
         "maxTokens": 4096,
         "accelerators": "gpu,cpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "emoji_generator", "insurance_card_scan"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator", "insurance_card_scan"]
     },
     {
       "name": "TinyGarden-270M",
