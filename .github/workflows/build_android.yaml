@@ -62,7 +62,7 @@ jobs:
       - name: Upload to Updraft
         run: |
           curl -X PUT \
-            "https://app.getupdraft.com/api/app_upload/${{ secrets.UPDRAFT_APP_KEY }}/${{ secrets.UPDRAFT_API_KEY }}" \
+            "https://app.getupdraft.com/api/app_upload/${{ secrets.UPDRAFT_APP_KEY }}/${{ secrets.UPDRAFT_API_KEY }}/" \
             -F app=@app-release.aab \
             -F "whats_new=$(git log -1 --pretty=%B)" \
             -F git_commit_hash=${{ github.sha }} \
