@@ -58,11 +58,26 @@ android {
     buildConfigField("String", "HF_TOKEN", "\"${localProperties.getProperty("hf.token", "")}\"")
   }
 
+  signingConfigs {
+    val ksPath = System.getenv("KEYSTORE_PATH")
+    if (ksPath != null) {
+      create("release") {
+        storeFile = file(ksPath)
+        storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+        keyAlias = System.getenv("KEY_ALIAS") ?: ""
+        keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+      }
+    }
+  }
+
   buildTypes {
     release {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("debug")
+      signingConfig = if (System.getenv("KEYSTORE_PATH") != null)
+        signingConfigs.getByName("release")
+      else
+        signingConfigs.getByName("debug")
     }
   }
   compileOptions {
