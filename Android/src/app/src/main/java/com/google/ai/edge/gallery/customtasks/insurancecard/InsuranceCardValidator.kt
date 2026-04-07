@@ -102,11 +102,13 @@ object InsuranceCardValidator {
   }
 
   private val KNOWN_INSURERS = listOf(
-    "CSS", "Helsana", "Swica", "Concordia", "Visana", "Sanitas",
-    "KPT", "Atupri", "Groupe Mutuel", "Assura", "EGK", "ÖKK",
-    "Sympany", "Agrisano", "Aquilana", "Birchmeier", "SLKK",
-    "Compact", "Easy Sana", "Innova", "Kolping", "Luzerner",
-    "Metallvita", "Sanagate", "Supra", "Vivao", "Wädenswil",
+    "Groupe Mutuel", "Mutuel Assurance", "Luzerner Hinterland", "Vita Surselva", "Easy Sana",
+    "Agrisano", "Aquilana", "Assura", "Atupri", "Avenir", "Birchmeier", "Compact",
+    "Concordia", "CSS", "Curaulta", "EGK", "Einsiedler", "Galenos", "Glarner",
+    "Helsana", "Hotela", "Innova", "Kolping", "KPT", "Metallvita",
+    "Mutuelle Neuchâteloise", "ÖKK", "Philos", "Rhenusana", "Sana24", "Sanagate",
+    "Sanitas", "SLKK", "Sodalis", "Steffisburg", "Sumiswalder", "Supra", "Swica",
+    "Sympany", "Visana", "Visperterminen", "Vivao", "Wädenswil", "AMB",
   )
 
   private fun validateVersicherer(name: String): FieldValidation {

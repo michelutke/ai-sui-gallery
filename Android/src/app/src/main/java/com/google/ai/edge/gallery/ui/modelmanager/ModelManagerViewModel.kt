@@ -904,6 +904,11 @@ constructor(
           }
         }
 
+        // Debug: log model counts per task
+        for (task in curTasks) {
+          Log.d(TAG, "Task '${task.id}' has ${task.models.size} models: ${task.models.map { it.name }}")
+        }
+
         // Find models from allowlist if a task's `modelNames` field is not empty.
         for (task in curTasks) {
           if (task.modelNames.isNotEmpty()) {

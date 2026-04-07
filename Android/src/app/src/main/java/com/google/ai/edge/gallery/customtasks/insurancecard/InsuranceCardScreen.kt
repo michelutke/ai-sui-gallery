@@ -61,9 +61,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -74,22 +76,23 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.Task
-import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.ByteArrayOutputStream
+import kotlin.math.max
+import kotlin.math.roundToInt
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 private const val TAG = "AGInsuranceCard"
 
-private const val LLM_PROMPT =
-  """Extract fields from this Swiss insurance card OCR text. Reply with ONLY a short JSON object, no markdown, no explanation. Keep values short. If a field is not found, use empty string.
-Example output: {"name":"Muster","vorname":"Max","geburtsdatum":"01.01.1990","versichertennummer":"","ahvNummer":"756.1234.5678.90","versicherer":"CSS","kartenNummer":""}
-OCR text: """
+/** ID-1 credit card aspect ratio (85.6mm / 54mm) used by Swiss KVG cards. */
+private const val CARD_ASPECT_RATIO = 85.6f / 54f
+
 
 private enum class ScanState {
   CAMERA,
@@ -195,6 +198,11 @@ private fun InsuranceCardContent(
   val preview = remember { Preview.Builder().build() }
   var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
+  // Track preview box size and overlay dimensions for accurate crop mapping
+  var previewSizePx by remember { mutableStateOf(IntSize.Zero) }
+  var overlayWidthPx by remember { mutableStateOf(0f) }
+  var overlayHeightPx by remember { mutableStateOf(0f) }
+
   LaunchedEffect(Unit) {
     cameraProvider = ProcessCameraProvider.awaitInstance(context.applicationContext)
   }
@@ -223,60 +231,31 @@ private fun InsuranceCardContent(
         override fun onCaptureSuccess(image: ImageProxy) {
           try {
             val bitmap = imageProxyToBitmap(image)
-            val rotated = bitmap.rotate(image.imageInfo.rotationDegrees.toFloat())
-            val cropped = cropToCardRegion(rotated)
+            val rotationDegrees = image.imageInfo.rotationDegrees
             image.close()
 
+            Log.d(TAG, "Captured: ${bitmap.width}x${bitmap.height}, rotation=$rotationDegrees")
+
+            // Display: manually rotate + crop to match overlay
+            val rotated = bitmap.rotate(rotationDegrees.toFloat())
+            val displayCropped = cropToOverlayRegion(rotated, previewSizePx, overlayWidthPx, overlayHeightPx)
+
             scope.launch {
-              capturedBitmap = cropped
-              // OCR
+              capturedBitmap = displayCropped
+              // OCR: let ML Kit handle rotation
               recognizeText(
-                cropped,
+                bitmap, rotationDegrees,
                 onSuccess = { text ->
                   ocrText = text
+                  Log.d(TAG, "OCR text: $text")
                   if (text.isBlank()) {
                     errorMessage = "No text recognized from the card."
                     scanState = ScanState.ERROR
                     return@recognizeText
                   }
-                  // LLM structuring
-                  scanState = ScanState.LLM_PROCESSING
-                  // Reset conversation to avoid context buildup
-                  LlmChatModelHelper.resetConversation(model = model)
-                  val llmAccumulator = StringBuilder()
-                  var resultHandled = false
-                  LlmChatModelHelper.runInference(
-                    model = model,
-                    input = LLM_PROMPT + text,
-                    resultListener = { partialResult, done, _ ->
-                      if (resultHandled) return@runInference
-                      llmAccumulator.append(partialResult)
-                      // Try to parse early when we see closing brace
-                      val soFar = llmAccumulator.toString()
-                      val hasCompleteJson = soFar.contains("{") && soFar.contains("}")
-                      if (done || hasCompleteJson) {
-                        resultHandled = true
-                        scope.launch {
-                          Log.d(TAG, "LLM response: $soFar")
-                          val result = parseResult(soFar)
-                          if (result != null) {
-                            cardResult = result
-                            scanState = ScanState.RESULT
-                          } else {
-                            errorMessage = "Could not parse LLM response.\n\nRaw: $soFar"
-                            scanState = ScanState.ERROR
-                          }
-                        }
-                      }
-                    },
-                    cleanUpListener = {},
-                    onError = { msg ->
-                      scope.launch {
-                        errorMessage = msg
-                        scanState = ScanState.ERROR
-                      }
-                    },
-                  )
+                  // Extract fields directly via regex — more reliable than LLM
+                  cardResult = extractFieldsFromOcr(text)
+                  scanState = ScanState.RESULT
                 },
                 onFailure = { e ->
                   scope.launch {
@@ -311,22 +290,24 @@ private fun InsuranceCardContent(
   ) {
     when (scanState) {
       ScanState.CAMERA -> {
-        Box(modifier = Modifier.weight(1f)) {
+        Box(modifier = Modifier.weight(1f).onGloballyPositioned { previewSizePx = it.size }) {
           CameraPreview(
             preview = preview,
             imageCapture = imageCapture,
             cameraProvider = cameraProvider,
             lifecycleOwner = lifecycleOwner,
           )
-          // Card overlay guide
-          val screenWidthDp = LocalConfiguration.current.screenWidthDp
-          val overlayWidthDp = screenWidthDp - 64f
-          val overlayHeightDp = overlayWidthDp * 4f / 13f
+          // Card overlay guide — matches crop region
+          val density = LocalDensity.current
+          overlayWidthPx = previewSizePx.width - with(density) { 64.dp.toPx() }
+          overlayHeightPx = overlayWidthPx / CARD_ASPECT_RATIO
+          val overlayWidthDp = with(density) { overlayWidthPx.toDp() }
+          val overlayHeightDp = with(density) { overlayHeightPx.toDp() }
           Box(
             modifier =
               Modifier.align(Alignment.Center)
-                .width(overlayWidthDp.dp)
-                .height(overlayHeightDp.dp)
+                .width(overlayWidthDp)
+                .height(overlayHeightDp)
                 .border(2.dp, MaterialTheme.colorScheme.primary),
           )
         }
@@ -574,10 +555,11 @@ private fun ErrorView(message: String, onRetake: () -> Unit) {
 
 private fun recognizeText(
   bitmap: Bitmap,
+  rotationDegrees: Int = 0,
   onSuccess: (String) -> Unit,
   onFailure: (Exception) -> Unit,
 ) {
-  val inputImage = InputImage.fromBitmap(bitmap, 0)
+  val inputImage = InputImage.fromBitmap(bitmap, rotationDegrees)
   val recognizer = TextRecognition.getClient(TextRecognizerOptions.Builder().build())
   recognizer
     .process(inputImage)
@@ -612,6 +594,55 @@ private fun imageProxyToBitmap(image: ImageProxy): Bitmap {
   throw IllegalArgumentException("Unsupported ImageProxy format: ${image.format}")
 }
 
+/**
+ * Crops the camera image to match the overlay rectangle shown on the preview.
+ * Maps preview coordinates → camera image coordinates using FILL_CENTER scaling.
+ * Adds 10% padding so OCR captures surrounding context.
+ */
+private fun cropToOverlayRegion(
+  bitmap: Bitmap,
+  previewSizePx: IntSize,
+  overlayViewW: Float,
+  overlayViewH: Float,
+): Bitmap {
+  if (previewSizePx.width == 0 || previewSizePx.height == 0) return bitmap
+
+  val imgW = bitmap.width.toFloat()
+  val imgH = bitmap.height.toFloat()
+  val viewW = previewSizePx.width.toFloat()
+  val viewH = previewSizePx.height.toFloat()
+
+  // FILL_CENTER: scale so image fills the preview, cropping overflow
+  val scale = max(viewW / imgW, viewH / imgH)
+
+  // Part of the image visible in the preview (in image coords)
+  val visibleImgW = viewW / scale
+  val visibleImgH = viewH / scale
+  val offsetX = (imgW - visibleImgW) / 2f
+  val offsetY = (imgH - visibleImgH) / 2f
+
+  // Overlay is centered in the preview
+  val overlayViewLeft = (viewW - overlayViewW) / 2f
+  val overlayViewTop = (viewH - overlayViewH) / 2f
+
+  // Map to image coords
+  val cropX = offsetX + overlayViewLeft / scale
+  val cropY = offsetY + overlayViewTop / scale
+  val cropW = overlayViewW / scale
+  val cropH = overlayViewH / scale
+
+  // Add 10% padding for better OCR context
+  val padX = cropW * 0.10f
+  val padY = cropH * 0.10f
+
+  val left = (cropX - padX).roundToInt().coerceIn(0, bitmap.width - 1)
+  val top = (cropY - padY).roundToInt().coerceIn(0, bitmap.height - 1)
+  val w = (cropW + padX * 2).roundToInt().coerceIn(1, bitmap.width - left)
+  val h = (cropH + padY * 2).roundToInt().coerceIn(1, bitmap.height - top)
+
+  return Bitmap.createBitmap(bitmap, left, top, w, h)
+}
+
 private fun Bitmap.rotate(degrees: Float): Bitmap {
   if (degrees == 0f) return this
   val matrix = Matrix()
@@ -619,46 +650,204 @@ private fun Bitmap.rotate(degrees: Float): Bitmap {
   return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
 }
 
-private fun cropToCardRegion(bitmap: Bitmap): Bitmap {
-  val targetAspect = 13f / 4f
-  var cropWidth = bitmap.width
-  var cropHeight = (cropWidth / targetAspect).toInt()
-  if (cropHeight > bitmap.height) {
-    cropHeight = bitmap.height
-    cropWidth = (cropHeight * targetAspect).toInt()
+
+/**
+ * Extract insurance card fields from OCR text.
+ * Tries EHIC back-of-card numbered format first (fields 3-8), then front-of-card labels.
+ */
+private fun extractFieldsFromOcr(text: String): InsuranceCardResult {
+  val lines = text.lines().map { it.trim() }.filter { it.isNotBlank() }
+
+  // --- Pattern-based extraction (works for both sides) ---
+
+  // AHV/OASI: 756.XXXX.XXXX.XX (13 digits starting with 756)
+  val ahvRaw = Regex("""756[\.\s/-]?\d{4}[\.\s/-]?\d{4}[\.\s/-]?\d{2}""").find(text)?.value ?: ""
+  val ahvDigits = ahvRaw.replace(Regex("""[^\d]"""), "")
+  val ahvNummer = if (ahvDigits.length == 13)
+    "${ahvDigits.substring(0,3)}.${ahvDigits.substring(3,7)}.${ahvDigits.substring(7,11)}.${ahvDigits.substring(11)}"
+  else ""
+
+  // Birth date: DD.MM.YYYY or DD/MM/YYYY, must be in the past
+  val now = LocalDate.now()
+  val geburtsdatum = Regex("""\d{1,2}[./]\d{1,2}[./]\d{4}""").findAll(text)
+    .map { it.value }
+    .firstOrNull { dateStr ->
+      try {
+        val normalized = dateStr.replace('/', '.')
+        val date = LocalDate.parse(normalized, DateTimeFormatter.ofPattern("d.M.yyyy"))
+        date.isBefore(now) && date.isAfter(now.minusYears(150))
+      } catch (_: Exception) { false }
+    }?.replace('/', '.') ?: ""
+
+  // Card number: 20-digit (80756... or 8231...)
+  val kartenNummer = Regex("""\b\d{20}\b""").find(text)?.value ?: ""
+
+  // Field 7 on EHIC back: "01234 - Sanitas" → BAG-Nr + Versicherer
+  val field7Match = Regex("""(\d{5})\s*-\s*([A-Za-zÀ-ÿ][\w\s]*)""").find(text)
+  val bagNr = field7Match?.groupValues?.get(1) ?: ""
+  val insurerFromField7 = field7Match?.groupValues?.get(2)?.trim() ?: ""
+
+  // Insurer: match field 7 value against official BAG list, then try full text
+  val versicherer = matchInsurer(insurerFromField7) ?: matchInsurer(text) ?: ""
+
+  // --- Name extraction ---
+  // --- Name extraction ---
+  // Strategy: find ALL-CAPS, letters-only text that isn't a label or known value.
+  // On EHIC back, names are printed in caps. First match = Name, second = Vorname.
+  val nameCandidates = lines.mapNotNull { line ->
+    val cleaned = line
+      .replace(Regex("""\d{1,2}[./]\d{1,2}[./]\d{4}"""), "") // strip dates
+      .replace(Regex("""\d[\d.\s/-]*"""), "")                  // strip number sequences
+      .replace(Regex("""[^\p{L}\s'-]"""), "")                  // keep only name chars
+      .trim()
+    if (cleaned.length >= 3 &&
+      cleaned == cleaned.uppercase() &&
+      !isLabelLine(cleaned) &&
+      matchInsurer(cleaned) == null &&
+      cleaned !in SHORT_CODES
+    ) cleaned else null
   }
-  val left = (bitmap.width - cropWidth) / 2
-  val top = (bitmap.height - cropHeight) / 2
-  return Bitmap.createBitmap(bitmap, left, top, cropWidth, cropHeight)
+  val backName = nameCandidates.getOrElse(0) { "" }
+  val backVorname = nameCandidates.getOrElse(1) { "" }
+
+  // Front of card fallback: label-based (for cards without ALL-CAPS names)
+  val nameSkipWords = listOf("name", "nom", "cognome", "prénom", "prenom", "vorname", "nome", "first", "last")
+  val fullNameFront = if (backName.isBlank()) valueAfterLabel(lines, listOf("Name", "Nom"), nameSkipWords) else ""
+  val (frontName, frontVorname) = splitNameVorname(fullNameFront)
+
+  val name = backName.ifBlank { frontName }.cleanName()
+  val vorname = backVorname.ifBlank { frontVorname }.cleanName()
+
+  // Versichertennummer: BAG-Nr from field 7, or front label
+  val versichertennummer = bagNr.ifBlank {
+    valueAfterLabel(lines,
+      listOf("Versicherten-Nr", "Vers.Nr", "Vers.-Nr", "No d'assuré", "N. assicurato"),
+      listOf("versicherten", "assuré", "assicurato", "vers."))
+  }
+
+  return InsuranceCardResult(
+    name = name,
+    vorname = vorname,
+    geburtsdatum = geburtsdatum,
+    versichertennummer = versichertennummer,
+    ahvNummer = ahvNummer,
+    versicherer = versicherer.cleanName(),
+    kartenNummer = kartenNummer,
+  )
 }
 
-private fun parseResult(llmResponse: String): InsuranceCardResult? {
-  val jsonStr = extractJson(llmResponse)
-  if (jsonStr != null) {
-    try {
-      val json = JSONObject(jsonStr)
-      return InsuranceCardResult(
-        name = json.optString("name", ""),
-        vorname = json.optString("vorname", ""),
-        geburtsdatum = json.optString("geburtsdatum", ""),
-        versichertennummer = json.optString("versichertennummer", ""),
-        ahvNummer = json.optString("ahvNummer", ""),
-        versicherer = json.optString("versicherer", ""),
-        kartenNummer = json.optString("kartenNummer", ""),
-      )
-    } catch (e: Exception) {
-      Log.e(TAG, "JSON parse error", e)
+/**
+ * EHIC back-of-card: finds value line after a numbered field label (e.g. "3. Name").
+ * Skips lines that are numbered labels or contain known EHIC label words.
+ */
+private fun numberedFieldValue(lines: List<String>, fieldNum: Int): String {
+  val labelRegex = Regex("""(^|\s)$fieldNum\.?\s""")
+  for (i in lines.indices) {
+    if (labelRegex.containsMatchIn(lines[i])) {
+      for (j in i + 1 until lines.size) {
+        val candidate = lines[j]
+        if (isLabelLine(candidate)) continue
+        return candidate
+      }
     }
   }
-  return null
+  return ""
 }
 
-private fun extractJson(text: String): String? {
-  // Find first { and last }
-  val start = text.indexOf('{')
-  val end = text.lastIndexOf('}')
-  if (start >= 0 && end > start) {
-    return text.substring(start, end + 1)
-  }
-  return null
+
+/** Find the best-matching insurer from the official BAG list in the given text. */
+private fun matchInsurer(text: String): String? {
+  if (text.isBlank()) return null
+  val lower = text.lowercase()
+  // Try longest match first (avoids "AMB" matching inside other words)
+  return KNOWN_INSURERS.sortedByDescending { it.length }
+    .firstOrNull { lower.contains(it.lowercase()) }
 }
+
+private fun isLabelLine(line: String): Boolean {
+  // Numbered field label (e.g. "5. Geburtsdatum")
+  if (Regex("""(^|\s)\d+\.?\s[A-Za-zÀ-ÿ]""").containsMatchIn(line)) return true
+  // Known EHIC / KVG label words
+  val lower = line.lowercase()
+  return LABEL_WORDS.any { lower.contains(it) }
+}
+
+private val LABEL_WORDS = listOf(
+  "name", "vornamen", "vorname", "geburtsdatum", "kennummer", "kennnummer",
+  "persönliche", "träger", "karte", "naissance", "prénom", "prenom",
+  "nom", "numéro", "identification", "institution", "cognome", "nome",
+  "gültig", "valable", "valido", "expiry", "ablauf", "versicherten",
+  "carte", "assicurato", "assuré", "date de",
+  // EHIC card header words
+  "europäische", "krankenversicherung", "versicherung", "versichertenkarte",
+  "assurance", "maladie", "health", "insurance", "card", "tessera",
+  "européenne", "europea", "european",
+  // Country / legal terms
+  "schweiz", "suisse", "svizzera", "switzerland",
+  "kvg", "lamal", "bag", "ehic", "ceam",
+)
+
+/** Short ALL-CAPS codes that appear on cards but aren't names. */
+private val SHORT_CODES = setOf(
+  "CH", "EU", "DE", "AT", "FR", "IT", "LI",
+  "KVG", "BAG", "AHV", "AVS", "EHIC", "CEAM",
+)
+
+/** Finds value on the line AFTER a label line, skipping translation lines. */
+private fun valueAfterLabel(
+  lines: List<String>,
+  labelKeywords: List<String>,
+  skipKeywords: List<String>,
+): String {
+  for (i in lines.indices) {
+    if (labelKeywords.any { lines[i].contains(it, ignoreCase = true) }) {
+      for (j in i + 1 until lines.size) {
+        val candidate = lines[j]
+        if (skipKeywords.none { candidate.contains(it, ignoreCase = true) }) {
+          return candidate
+        }
+      }
+    }
+  }
+  return ""
+}
+
+/** Strip digits and convert "HANS" → "Hans", "MÜLLER-SCHMIDT" → "Müller-Schmidt". */
+private fun String.cleanName(): String {
+  val stripped = replace(Regex("""\d"""), "").trim()
+  if (stripped.isBlank()) return ""
+  val sb = StringBuilder()
+  var capitalize = true
+  for (c in stripped.lowercase()) {
+    sb.append(if (capitalize && c.isLetter()) c.uppercaseChar() else c)
+    capitalize = c == ' ' || c == '-'
+  }
+  return sb.toString()
+}
+
+/** Split "Muster, Max" or "Muster Max" into (name, vorname). */
+private fun splitNameVorname(fullName: String): Pair<String, String> {
+  if (fullName.isBlank()) return "" to ""
+  val parts = if (fullName.contains(",")) {
+    fullName.split(",", limit = 2).map { it.trim() }
+  } else {
+    fullName.split(" ", limit = 2).map { it.trim() }
+  }
+  return parts.getOrElse(0) { "" } to parts.getOrElse(1) { "" }
+}
+
+/** Official BAG (Bundesamt für Gesundheit) list of KVG insurers + common brand names. */
+private val KNOWN_INSURERS = listOf(
+  // Full official names (longest first for matching priority)
+  "Groupe Mutuel", "Mutuel Assurance", "Luzerner Hinterland",
+  "Vita Surselva", "Easy Sana",
+  // Common brand names as printed on cards
+  "Agrisano", "Aquilana", "Assura", "Atupri", "Avenir",
+  "Birchmeier", "Compact", "Concordia", "CSS", "Curaulta",
+  "EGK", "Einsiedler", "Galenos", "Glarner", "Helsana", "Hotela",
+  "Innova", "Kolping", "KPT", "Metallvita",
+  "Mutuelle Neuchâteloise", "ÖKK", "Philos", "Rhenusana",
+  "Sana24", "Sanagate", "Sanitas", "SLKK", "Sodalis",
+  "Steffisburg", "Sumiswalder", "Supra", "Swica", "Sympany",
+  "Visana", "Visperterminen", "Vivao", "Wädenswil", "AMB",
+)
