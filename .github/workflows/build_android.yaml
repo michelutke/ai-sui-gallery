@@ -6,6 +6,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'Android/**'
+      - '.github/workflows/build_android.yaml'
   pull_request:
     branches: [ "main" ]
     paths:
@@ -28,17 +29,15 @@ jobs:
 
       - name: Decode keystore
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > $GITHUB_WORKSPACE/release.keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/release.keystore
 
       - name: Build release APK
+        run: ./gradlew assembleRelease
         env:
           KEYSTORE_PATH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && format('{0}/release.keystore', github.workspace) || '' }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          UPDRAFT_APP_KEY: ${{ secrets.UPDRAFT_APP_KEY }}
-          UPDRAFT_SDK_KEY: ${{ secrets.UPDRAFT_SDK_KEY }}
-        run: ./gradlew assembleRelease
 
       - name: Upload to Updraft
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
