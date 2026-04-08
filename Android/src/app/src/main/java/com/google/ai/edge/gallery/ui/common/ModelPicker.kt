@@ -16,11 +16,7 @@
 
 package com.google.ai.edge.gallery.ui.common
 
-// import androidx.compose.ui.tooling.preview.Preview
-// import com.google.ai.edge.gallery.ui.preview.PreviewModelManagerViewModel
-// import com.google.ai.edge.gallery.ui.preview.TASK_TEST1
-// import com.google.ai.edge.gallery.ui.theme.GalleryTheme
-
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -53,9 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.Model
-import com.google.ai.edge.gallery.data.RuntimeType
 import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.ui.common.modelitem.StatusIcon
+import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerUiState
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
 import com.google.ai.edge.gallery.ui.theme.labelSmallNarrow
 
@@ -69,6 +65,20 @@ fun ModelPicker(
   var showMemoryWarning by remember { mutableStateOf(false) }
   var modelToPick by remember { mutableStateOf<Model?>(null) }
   val context = LocalContext.current
+
+  // Partition into built-in (no download) and AI models
+  val builtInModels = task.models.filter { it.url.isEmpty() && it.sizeInBytes == 0L }
+  val aiModels = task.models.filter { it.url.isNotEmpty() || it.sizeInBytes > 0L }
+  val showSections = builtInModels.isNotEmpty() && aiModels.isNotEmpty()
+
+  val onRowClicked: (Model) -> Unit = { model ->
+    if (isMemoryLow(context = context, model = model)) {
+      modelToPick = model
+      showMemoryWarning = true
+    } else {
+      onModelSelected(model)
+    }
+  }
 
   Column(modifier = Modifier.padding(bottom = 8.dp)) {
     // Title
@@ -91,64 +101,40 @@ fun ModelPicker(
       )
     }
 
-    // Model list.
-    for (model in task.models) {
-      val selected = model.name == modelManagerUiState.selectedModel.name
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier =
-          Modifier.fillMaxWidth()
-            .clickable {
-              // Show memory warning before proceeding.
-              if (isMemoryLow(context = context, model = model)) {
-                modelToPick = model
-                showMemoryWarning = true
-              } else {
-                onModelSelected(model)
-              }
-            }
-            .background(
-              if (selected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
-            )
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-      ) {
-        Spacer(modifier = Modifier.width(24.dp))
-        Column(modifier = Modifier.weight(1f)) {
-          Text(
-            model.displayName.ifEmpty { model.name },
-            style = MaterialTheme.typography.bodyMedium,
-          )
-          var showStatusIconAndSize = true
+    if (showSections) {
+      Text(
+        "Without AI",
+        modifier = Modifier.padding(horizontal = 40.dp).padding(top = 8.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    for (model in builtInModels) {
+      ModelPickerRow(
+        model = model,
+        uiState = modelManagerUiState,
+        task = task,
+        showDownloadInfo = false,
+        onClick = { onRowClicked(model) },
+      )
+    }
 
-          if (showStatusIconAndSize) {
-            Row(
-              horizontalArrangement = Arrangement.spacedBy(4.dp),
-              verticalAlignment = Alignment.CenterVertically,
-            ) {
-              StatusIcon(
-                task = task,
-                model = model,
-                downloadStatus = modelManagerUiState.modelDownloadStatus[model.name],
-              )
-              Text(
-                if (model.localFileRelativeDirPathOverride.isEmpty())
-                  model.sizeInBytes.humanReadableSize()
-                else "{ext_file_dir}/${model.localFileRelativeDirPathOverride}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = labelSmallNarrow.copy(lineHeight = 10.sp),
-              )
-            }
-          }
-        }
-        if (selected) {
-          Icon(
-            Icons.Filled.CheckCircle,
-            modifier = Modifier.size(16.dp),
-            contentDescription = stringResource(R.string.cd_selected_icon),
-          )
-        }
-      }
+    if (showSections) {
+      Text(
+        "AI Models",
+        modifier = Modifier.padding(horizontal = 40.dp).padding(top = 12.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    for (model in aiModels) {
+      ModelPickerRow(
+        model = model,
+        uiState = modelManagerUiState,
+        task = task,
+        showDownloadInfo = true,
+        onClick = { onRowClicked(model) },
+      )
     }
   }
 
@@ -166,16 +152,62 @@ fun ModelPicker(
   }
 }
 
-// @Preview(showBackground = true)
-// @Composable
-// fun ModelPickerPreview() {
-//   val context = LocalContext.current
-
-//   GalleryTheme {
-//     ModelPicker(
-//       task = TASK_TEST1,
-//       modelManagerViewModel = PreviewModelManagerViewModel(context = context),
-//       onModelSelected = {},
-//     )
-//   }
-// }
+@Composable
+private fun ModelPickerRow(
+  model: Model,
+  uiState: ModelManagerUiState,
+  task: Task,
+  showDownloadInfo: Boolean,
+  onClick: () -> Unit,
+) {
+  val selected = model.name == uiState.selectedModel.name
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.SpaceBetween,
+    modifier =
+      Modifier.fillMaxWidth()
+        .clickable { onClick() }
+        .background(if (selected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent)
+        .padding(horizontal = 16.dp, vertical = 8.dp),
+  ) {
+    Spacer(modifier = Modifier.width(24.dp))
+    Column(modifier = Modifier.weight(1f)) {
+      Text(
+        model.displayName.ifEmpty { model.name },
+        style = MaterialTheme.typography.bodyMedium,
+      )
+      if (showDownloadInfo) {
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(4.dp),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          StatusIcon(
+            task = task,
+            model = model,
+            downloadStatus = uiState.modelDownloadStatus[model.name],
+          )
+          Text(
+            if (model.localFileRelativeDirPathOverride.isEmpty())
+              model.sizeInBytes.humanReadableSize()
+            else "{ext_file_dir}/${model.localFileRelativeDirPathOverride}",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = labelSmallNarrow.copy(lineHeight = 10.sp),
+          )
+        }
+      } else if (model.info.isNotEmpty()) {
+        Text(
+          model.info,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          style = labelSmallNarrow.copy(lineHeight = 12.sp),
+        )
+      }
+    }
+    if (selected) {
+      Icon(
+        Icons.Filled.CheckCircle,
+        modifier = Modifier.size(16.dp),
+        contentDescription = stringResource(R.string.cd_selected_icon),
+      )
+    }
+  }
+}

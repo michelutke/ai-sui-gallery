@@ -866,8 +866,9 @@ constructor(
         // Convert models in the allowlist.
         val curTasks = getActiveCustomTasks().map { it.task }
         // Clear non-imported models to avoid duplicates on Activity recreation (e.g. locale change).
+        // Preserve built-in models (no URL, no size) that don't come from the allowlist.
         for (task in curTasks) {
-          task.models.removeAll { !it.imported }
+          task.models.removeAll { !it.imported && (it.url.isNotEmpty() || it.sizeInBytes > 0L) }
         }
         val nameToModel = mutableMapOf<String, Model>()
         for (allowedModel in modelAllowlist.models) {

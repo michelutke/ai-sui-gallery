@@ -76,12 +76,17 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.ai.edge.gallery.R
 import com.google.ai.edge.gallery.data.ModelDownloadStatusType
 import com.google.ai.edge.gallery.data.Task
+import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper
+import com.google.ai.edge.gallery.ui.llmchat.LlmModelInstance
 import com.google.ai.edge.gallery.ui.modelmanager.ModelManagerViewModel
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.ByteArrayOutputStream
 import kotlin.math.max
+import kotlinx.coroutines.Dispatchers
 import kotlin.math.roundToInt
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -215,6 +220,16 @@ private fun InsuranceCardContent(
   }
 
   fun resetToCamera() {
+    // Reset LLM conversation to avoid prior card context leaking into next scan
+    if (model.name != OCR_REGEX_MODEL.name && model.instance is LlmModelInstance) {
+      val systemPrompt = if (model.llmSupportImage) IMAGE_SYSTEM_PROMPT else TEXT_SYSTEM_PROMPT
+      LlmChatModelHelper.resetConversation(
+        model = model,
+        supportImage = model.llmSupportImage,
+        supportAudio = false,
+        systemInstruction = Contents.of(systemPrompt),
+      )
+    }
     scanState = ScanState.CAMERA
     capturedBitmap = null
     ocrText = ""
@@ -223,7 +238,8 @@ private fun InsuranceCardContent(
   }
 
   fun captureAndProcess() {
-    scanState = ScanState.OCR_PROCESSING
+    val isOcrMode = model.name == OCR_REGEX_MODEL.name
+    scanState = if (isOcrMode || !model.llmSupportImage) ScanState.OCR_PROCESSING else ScanState.LLM_PROCESSING
     imageCapture.takePicture(
       cameraExecutor,
       object : ImageCapture.OnImageCapturedCallback() {
@@ -236,34 +252,111 @@ private fun InsuranceCardContent(
 
             Log.d(TAG, "Captured: ${bitmap.width}x${bitmap.height}, rotation=$rotationDegrees")
 
-            // Display: manually rotate + crop to match overlay
             val rotated = bitmap.rotate(rotationDegrees.toFloat())
             val displayCropped = cropToOverlayRegion(rotated, previewSizePx, overlayWidthPx, overlayHeightPx)
 
             scope.launch {
               capturedBitmap = displayCropped
-              // OCR: let ML Kit handle rotation
-              recognizeText(
-                bitmap, rotationDegrees,
-                onSuccess = { text ->
-                  ocrText = text
-                  Log.d(TAG, "OCR text: $text")
-                  if (text.isBlank()) {
-                    errorMessage = "No text recognized from the card."
-                    scanState = ScanState.ERROR
-                    return@recognizeText
+
+              when {
+                // OCR + Regex mode — current behavior
+                isOcrMode -> {
+                  recognizeText(
+                    bitmap, rotationDegrees,
+                    onSuccess = { text ->
+                      ocrText = text
+                      Log.d(TAG, "OCR text: $text")
+                      if (text.isBlank()) {
+                        errorMessage = "No text recognized from the card."
+                        scanState = ScanState.ERROR
+                        return@recognizeText
+                      }
+                      cardResult = extractFieldsFromOcr(text)
+                      scanState = ScanState.RESULT
+                    },
+                    onFailure = { e ->
+                      scope.launch {
+                        errorMessage = "OCR failed: ${e.message}"
+                        scanState = ScanState.ERROR
+                      }
+                    },
+                  )
+                }
+
+                // Multimodal LLM — send image directly
+                model.llmSupportImage -> {
+                  scope.launch(Dispatchers.Default) {
+                    try {
+                      val instance = model.instance as LlmModelInstance
+                      val pngBytes = displayCropped.toPngByteArray()
+                      val contents = Contents.of(
+                        Content.ImageBytes(pngBytes),
+                        Content.Text("Extract all fields from this Swiss insurance card image."),
+                      )
+                      val response = instance.conversation.sendMessage(contents)
+                      val result = InsuranceCardLlmParser.parse(response.toString())
+                      scope.launch {
+                        if (result != null) {
+                          cardResult = result
+                          scanState = ScanState.RESULT
+                        } else {
+                          Log.w(TAG, "LLM response could not be parsed: $response")
+                          errorMessage = "Could not parse LLM response."
+                          scanState = ScanState.ERROR
+                        }
+                      }
+                    } catch (e: Exception) {
+                      Log.e(TAG, "LLM inference failed", e)
+                      scope.launch {
+                        errorMessage = "LLM inference failed: ${e.message}"
+                        scanState = ScanState.ERROR
+                      }
+                    }
                   }
-                  // Extract fields directly via regex — more reliable than LLM
-                  cardResult = extractFieldsFromOcr(text)
-                  scanState = ScanState.RESULT
-                },
-                onFailure = { e ->
-                  scope.launch {
-                    errorMessage = "OCR failed: ${e.message}"
-                    scanState = ScanState.ERROR
-                  }
-                },
-              )
+                }
+
+                // Text-only LLM — OCR first, then LLM extraction
+                else -> {
+                  recognizeText(
+                    bitmap, rotationDegrees,
+                    onSuccess = { text ->
+                      ocrText = text
+                      Log.d(TAG, "OCR text: $text")
+                      if (text.isBlank()) {
+                        errorMessage = "No text recognized from the card."
+                        scanState = ScanState.ERROR
+                        return@recognizeText
+                      }
+                      scanState = ScanState.LLM_PROCESSING
+                      scope.launch(Dispatchers.Default) {
+                        try {
+                          val instance = model.instance as LlmModelInstance
+                          val contents = Contents.of(Content.Text(text))
+                          val response = instance.conversation.sendMessage(contents)
+                          val result = InsuranceCardLlmParser.parse(response.toString())
+                          scope.launch {
+                            // Fall back to regex if LLM parse fails
+                            cardResult = result ?: extractFieldsFromOcr(text)
+                            scanState = ScanState.RESULT
+                          }
+                        } catch (e: Exception) {
+                          Log.e(TAG, "LLM inference failed", e)
+                          scope.launch {
+                            errorMessage = "LLM inference failed: ${e.message}"
+                            scanState = ScanState.ERROR
+                          }
+                        }
+                      }
+                    },
+                    onFailure = { e ->
+                      scope.launch {
+                        errorMessage = "OCR failed: ${e.message}"
+                        scanState = ScanState.ERROR
+                      }
+                    },
+                  )
+                }
+              }
             }
           } catch (e: Exception) {
             image.close()
@@ -648,6 +741,12 @@ private fun Bitmap.rotate(degrees: Float): Bitmap {
   val matrix = Matrix()
   matrix.postRotate(degrees)
   return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+}
+
+private fun Bitmap.toPngByteArray(): ByteArray {
+  val stream = ByteArrayOutputStream()
+  compress(Bitmap.CompressFormat.PNG, 100, stream)
+  return stream.toByteArray()
 }
 
 

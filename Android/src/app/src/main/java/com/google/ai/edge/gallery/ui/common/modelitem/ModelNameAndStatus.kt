@@ -132,7 +132,9 @@ fun ModelNameAndStatus(
         // Status label
         else {
           var sizeLabel = model.totalBytes.humanReadableSize()
-          if (model.localFileRelativeDirPathOverride.isNotEmpty()) {
+          if (model.sizeInBytes == 0L && model.url.isEmpty() && model.info.isNotEmpty()) {
+            sizeLabel = model.info
+          } else if (model.localFileRelativeDirPathOverride.isNotEmpty()) {
             sizeLabel = "{ext_files_dir}/${model.localFileRelativeDirPathOverride}"
           }
 
