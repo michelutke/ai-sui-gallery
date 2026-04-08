@@ -72,15 +72,27 @@ Single-activity (`MainActivity.kt`) with Compose Navigation; graph defined in `u
 
 ### Model Allowlist System
 
-`model_allowlist.json` (root) is the current allowlist. Versioned snapshots live in `model_allowlists/`. Controls which models are available per app version.
+`model_allowlist.json` (root) is the source allowlist. `model_allowlists/{version}.json` (e.g. `1_0_0.json`) are versioned copies the app fetches from GitHub at startup. The app tries: GitHub versioned URL → disk cache → bundled assets fallback. When updating models, update both `model_allowlist.json` and the corresponding versioned file, plus `Android/src/app/src/main/assets/model_allowlist.json`.
+
+Current models: Gemma-4-E2B, Gemma-4-E4B, Qwen2.5-1.5B, Qwen3.5-0.8B, TinyGarden-270M, MobileActions-270M.
 
 ### Insurance Card Scanner (`customtasks/insurancecard/`)
 
-OCR-based extraction pipeline for Swiss KVG insurance cards (no LLM needed):
+Dual-mode extraction for Swiss KVG insurance cards. User selects mode via model picker:
 
-**Flow:** CameraX capture → ML Kit OCR (with `rotationDegrees` for correct orientation) → regex/pattern extraction → result display
+**Mode 1: OCR + Regex (no AI model needed)**
+CameraX capture → ML Kit OCR (with `rotationDegrees` for correct orientation) → regex/pattern extraction → result display
 
-**Extraction strategy (back of card / EHIC format):**
+**Mode 2: LLM extraction (multimodal or text-only)**
+- Multimodal models (e.g. Gemma 4): image sent directly to LLM → JSON response → `InsuranceCardLlmParser` parses result
+- Text-only models (e.g. Qwen 2.5): ML Kit OCR first → OCR text sent to LLM → JSON parse with regex fallback
+
+**Key files:**
+- `InsuranceCardTask.kt` — `OCR_REGEX_MODEL` sentinel (built-in, no download), branched init for OCR vs LLM mode, system prompts for text and image extraction
+- `InsuranceCardScreen.kt` — `captureAndProcess()` branches into 3 paths (OCR-regex, multimodal LLM, text-only LLM), conversation reset between scans
+- `InsuranceCardLlmParser.kt` — Gson-based JSON parser for LLM responses, strips markdown fences
+
+**OCR+Regex extraction strategy (back of card / EHIC format):**
 - AHV number: `756.XXXX.XXXX.XX` regex pattern
 - Birth date: `DD.MM.YYYY` or `DD/MM/YYYY`, filtered for past dates only (skips Ablaufdatum)
 - Card number: 20-digit pattern (`80756...` or `8231...`)
@@ -90,6 +102,8 @@ OCR-based extraction pipeline for Swiss KVG insurance cards (no LLM needed):
 **Front-of-card fallback:** label-based extraction with multi-language support (DE/FR/IT).
 
 **Camera crop:** overlay uses ID-1 credit card aspect ratio (85.6/54mm). Crop maps preview coordinates → camera image coords accounting for FILL_CENTER scaling.
+
+**Built-in model pattern:** To add a non-AI option to any task, create a `Model` with `url = ""`, `sizeInBytes = 0L`, and `localFileRelativeDirPathOverride` set (triggers instant SUCCEEDED status). Set `model.instance = Unit` in `initializeModelFn` to pass the initialization gate. The `ModelPicker` auto-sections "Without AI" and "AI Models" when both types exist.
 
 ### Custom Task Extension Pattern
 
