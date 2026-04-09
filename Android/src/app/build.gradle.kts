@@ -41,7 +41,7 @@ android {
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.appswithlove.aiedge.gallery"
+    applicationId = "com.appswithlove.ai"
     minSdk = 31
     targetSdk = 35
     versionCode = 1

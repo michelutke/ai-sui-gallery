@@ -16,14 +16,12 @@
 
 package com.google.ai.edge.gallery.ui.modelmanager
 
-// import androidx.compose.ui.tooling.preview.Preview
-// import com.google.ai.edge.gallery.ui.preview.PreviewModelManagerViewModel
-// import com.google.ai.edge.gallery.ui.preview.TASK_TEST1
-// import com.google.ai.edge.gallery.ui.theme.GalleryTheme
-
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,11 +44,11 @@ fun ModelManager(
   enableAnimation: Boolean,
   navigateUp: () -> Unit,
   onModelClicked: (Model) -> Unit,
+  sharedTransitionScope: SharedTransitionScope,
+  animatedVisibilityScope: AnimatedVisibilityScope,
   modifier: Modifier = Modifier,
 ) {
-  // Set title based on the task.
   val title = task.label
-  // Model count.
   val modelCount by remember {
     derivedStateOf {
       val trigger = task.updateTrigger.value
@@ -62,21 +60,20 @@ fun ModelManager(
     }
   }
 
-  // Navigate up when there are no models left.
   LaunchedEffect(modelCount) {
     if (modelCount == 0) {
       navigateUp()
     }
   }
 
-  // Handle system's edge swipe.
   BackHandler { navigateUp() }
 
   Scaffold(
     modifier = modifier,
+    containerColor = MaterialTheme.colorScheme.surfaceContainer,
     topBar = {
       GalleryTopAppBar(
-        title = title,
+        title = "",
         leftAction = AppBarAction(actionType = AppBarActionType.NAVIGATE_UP, actionFn = navigateUp),
       )
     },
@@ -85,25 +82,12 @@ fun ModelManager(
       task = task,
       modelManagerViewModel = viewModel,
       contentPadding = innerPadding,
-      enableAnimation = enableAnimation,
+      enableAnimation = false,
       onModelClicked = onModelClicked,
       onBenchmarkClicked = {},
+      sharedTransitionScope = sharedTransitionScope,
+      animatedVisibilityScope = animatedVisibilityScope,
       modifier = Modifier.fillMaxSize(),
     )
   }
 }
-
-// @Preview
-// @Composable
-// fun ModelManagerPreview() {
-//   val context = LocalContext.current
-
-//   GalleryTheme {
-//     ModelManager(
-//       viewModel = PreviewModelManagerViewModel(context = context),
-//       onModelClicked = {},
-//       task = TASK_TEST1,
-//       navigateUp = {},
-//     )
-//   }
-// }

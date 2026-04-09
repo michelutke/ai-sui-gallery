@@ -382,7 +382,7 @@ fun SettingsDialog(
   }
 }
 
-private fun themeLabel(theme: Theme): String {
+internal fun themeLabel(theme: Theme): String {
   return when (theme) {
     Theme.THEME_AUTO -> "Auto"
     Theme.THEME_LIGHT -> "Light"

@@ -21,6 +21,11 @@ package com.google.ai.edge.gallery.ui.modelmanager
 // import com.google.ai.edge.gallery.ui.preview.TASK_TEST1
 // import com.google.ai.edge.gallery.ui.theme.GalleryTheme
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 
 import androidx.compose.foundation.background
@@ -92,6 +97,8 @@ fun ModelList(
   onModelClicked: (Model) -> Unit,
   onBenchmarkClicked: (Model) -> Unit,
   modifier: Modifier = Modifier,
+  sharedTransitionScope: SharedTransitionScope? = null,
+  animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
   // This is just to update "models" list when task.updateTrigger is updated so that the UI can
   // be properly updated.
@@ -159,7 +166,7 @@ fun ModelList(
 
   Box(
     contentAlignment = Alignment.BottomEnd,
-    modifier = Modifier.background(color = getTaskBgColor(task = task)),
+    modifier = Modifier.background(color = MaterialTheme.colorScheme.surfaceContainer),
   ) {
     LazyColumn(
       modifier = modifier.padding(horizontal = 16.dp),
@@ -168,122 +175,132 @@ fun ModelList(
       state = listState,
     ) {
       // Task header area.
-      item(key = "taskHeader") {
-        Spacer(modifier = Modifier.height(32.dp))
-        Column(
-          verticalArrangement = Arrangement.spacedBy(8.dp),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-        ) {
-          // Task icon.
-          TaskIcon(task = task, width = 64.dp, animationProgress = taskIconProgress)
-
-          // Task name.
-          Box(
-            modifier =
-              Modifier.offset(x = (20f * (1f - taskIconProgress)).dp).semantics {
-                contentDescription = task.label
-              }
+        item(key = "taskHeader") {
+          Spacer(modifier = Modifier.height(32.dp))
+          Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
           ) {
-            RevealingText(
-              text = task.label,
-              style =
-                headlineLargeMedium.copy(
-                  brush = Brush.linearGradient(getTaskBgGradientColors(task = task))
-                ),
-              textAlign = TextAlign.Center,
-              animationProgress = taskIconProgress,
-            )
-            RevealingText(
-              text = task.label,
-              style = headlineLargeMedium,
-              textAlign = TextAlign.Center,
-              animationProgress = taskLabelProgress,
-            )
-          }
-
-          // Experimental pill
-          if (task.experimental) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-              Surface(
-                shape = CircleShape, // This creates the "pill" effect
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier =
-                  Modifier.align(Alignment.Center).graphicsLayer {
-                    alpha = descriptionProgress
-                    translationY = (CONTENT_ANIMATION_OFFSET * (1 - descriptionProgress)).toPx()
-                  },
-              ) {
-                Text(
-                  text = stringResource(R.string.model_list_experimental_label),
-                  style = bodyLargeNarrow.copy(fontWeight = FontWeight.Bold),
-                  modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+              with(sharedTransitionScope) {
+                Modifier.sharedElement(
+                  rememberSharedContentState(key = "task-icon-${task.id}"),
+                  animatedVisibilityScope = animatedVisibilityScope,
                 )
               }
-            }
-          }
+            } else Modifier
+            TaskIcon(task = task, width = 64.dp, animationProgress = taskIconProgress, modifier = iconModifier)
 
-          // Description.
-          Text(
-            task.description,
-            textAlign = TextAlign.Center,
-            style = bodyLargeNarrow,
-            modifier =
-              Modifier.graphicsLayer {
-                alpha = descriptionProgress
-                translationY = (CONTENT_ANIMATION_OFFSET * (1 - descriptionProgress)).toPx()
-              },
-          )
-
-          // Urls.
-          if (task.docUrl.isNotEmpty() || task.sourceCodeUrl.isNotEmpty()) {
+            // Title with shared bounds
+            val titleModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+              with(sharedTransitionScope) {
+                Modifier.sharedBounds(
+                  rememberSharedContentState(key = "task-title-${task.id}"),
+                  animatedVisibilityScope = animatedVisibilityScope,
+                )
+              }
+            } else Modifier
             Box(
               modifier =
-                Modifier.padding(vertical = 8.dp).graphicsLayer {
-                  alpha = descriptionProgress
-                  translationY = (CONTENT_ANIMATION_OFFSET * (1 - descriptionProgress)).toPx()
-                }
+                titleModifier.then(
+                  Modifier.semantics { contentDescription = task.label }
+                )
             ) {
-              Column(
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-              ) {
-                if (task.docUrl.isNotEmpty()) {
-                  ClickableLink(
-                    url = task.docUrl,
-                    linkText = "API Documentation",
-                    icon = Icons.Outlined.Description,
-                  )
-                }
-                if (task.sourceCodeUrl.isNotEmpty()) {
-                  ClickableLink(
-                    url = task.sourceCodeUrl,
-                    linkText = "Example code",
-                    icon = Icons.Outlined.Code,
+              RevealingText(
+                text = task.label,
+                style = headlineLargeMedium,
+                textAlign = TextAlign.Center,
+                animationProgress = 1f,
+              )
+            }
+
+            if (task.experimental) {
+              Box(modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                  shape = CircleShape,
+                  color = MaterialTheme.colorScheme.secondaryContainer,
+                  modifier =
+                    Modifier.align(Alignment.Center).graphicsLayer {
+                      alpha = descriptionProgress
+                      translationY = (CONTENT_ANIMATION_OFFSET * (1 - descriptionProgress)).toPx()
+                    },
+                ) {
+                  Text(
+                    text = stringResource(R.string.model_list_experimental_label),
+                    style = bodyLargeNarrow.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                   )
                 }
               }
             }
-          }
 
-          // Models available.
-          val resources = LocalContext.current.resources
-          Text(
-            resources.getQuantityString(
-              R.plurals.model_list_number_of_models_available,
-              models.size + importedModels.size,
-              models.size + importedModels.size,
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier =
-              Modifier.alpha(0.6f).graphicsLayer {
-                alpha = descriptionProgress * 0.6f
-                translationY = (CONTENT_ANIMATION_OFFSET * (1 - descriptionProgress)).toPx()
-              },
-          )
+            val descModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+              with(sharedTransitionScope) {
+                Modifier.sharedBounds(
+                  rememberSharedContentState(key = "task-desc-${task.id}"),
+                  animatedVisibilityScope = animatedVisibilityScope,
+                )
+              }
+            } else Modifier
+            Text(
+              task.description,
+              textAlign = TextAlign.Center,
+              style = bodyLargeNarrow,
+              modifier = descModifier,
+            )
+
+            if (task.docUrl.isNotEmpty() || task.sourceCodeUrl.isNotEmpty()) {
+              Box(
+                modifier =
+                  Modifier.padding(vertical = 8.dp).graphicsLayer {
+                    alpha = descriptionProgress
+                    translationY = (CONTENT_ANIMATION_OFFSET * (1 - descriptionProgress)).toPx()
+                  }
+              ) {
+                Column(
+                  horizontalAlignment = Alignment.Start,
+                  verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                  if (task.docUrl.isNotEmpty()) {
+                    ClickableLink(
+                      url = task.docUrl,
+                      linkText = "API Documentation",
+                      icon = Icons.Outlined.Description,
+                    )
+                  }
+                  if (task.sourceCodeUrl.isNotEmpty()) {
+                    ClickableLink(
+                      url = task.sourceCodeUrl,
+                      linkText = "Example code",
+                      icon = Icons.Outlined.Code,
+                    )
+                  }
+                }
+              }
+            }
+
+            val resources = LocalContext.current.resources
+            val countModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+              with(sharedTransitionScope) {
+                Modifier.sharedBounds(
+                  rememberSharedContentState(key = "task-count-${task.id}"),
+                  animatedVisibilityScope = animatedVisibilityScope,
+                )
+              }
+            } else Modifier
+            Text(
+              resources.getQuantityString(
+                R.plurals.model_list_number_of_models_available,
+                models.size + importedModels.size,
+                models.size + importedModels.size,
+              ),
+              color = MaterialTheme.colorScheme.onSurface,
+              style = MaterialTheme.typography.bodyMedium,
+              modifier = countModifier.alpha(0.6f),
+            )
+          }
         }
-      }
 
       // Title for recommended models.
       if (!models.isEmpty())

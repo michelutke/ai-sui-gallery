@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MapsUgc
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -94,6 +95,9 @@ fun ModelPageAppBar(
     modelInitializationStatus?.status == ModelInitializationStatusType.INITIALIZED
 
   CenterAlignedTopAppBar(
+    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+      containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ),
     title = {
       Column(
         horizontalAlignment = Alignment.CenterHorizontally,
