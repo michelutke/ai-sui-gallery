@@ -41,6 +41,9 @@ kotlinReflect = "2.2.21"
 moshi = "1.15.2"
 ksp = "2.3.6"
 textRecognition = "16.0.1"
+room = "2.7.1"
+graphicsShapes = "1.0.1"
+material3Expressive = "1.5.0-alpha02"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -96,6 +99,11 @@ androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterfa
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 moshi-kotlin-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
 text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "textRecognition" }
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphicsShapes" }
+material3-expressive = { group = "androidx.compose.material3", name = "material3", version.ref = "material3Expressive" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
