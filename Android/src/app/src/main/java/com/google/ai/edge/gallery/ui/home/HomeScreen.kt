@@ -22,6 +22,9 @@ package com.google.ai.edge.gallery.ui.home
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -450,9 +453,16 @@ private fun TaskCard(
     else 1f
 
   val cbTask = stringResource(R.string.cd_task_card, task.label, task.models.size)
+  with(sharedTransitionScope) {
   Card(
     modifier =
       modifier
+        .sharedBounds(
+          rememberSharedContentState(key = "task-card-${task.id}"),
+          animatedVisibilityScope = animatedVisibilityScope,
+          enter = fadeIn(animationSpec = tween(300)),
+          exit = fadeOut(animationSpec = tween(300)),
+        )
         .clip(RoundedCornerShape(20.dp))
         .clickable(onClick = onClick)
         .graphicsLayer { alpha = progress }
@@ -462,7 +472,6 @@ private fun TaskCard(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
       ),
   ) {
-    with(sharedTransitionScope) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(16.dp),
       verticalAlignment = Alignment.CenterVertically,
@@ -471,7 +480,7 @@ private fun TaskCard(
       TaskIcon(
         task = task,
         width = 40.dp,
-        modifier = Modifier.sharedElement(
+        modifier = Modifier.sharedBounds(
           rememberSharedContentState(key = "task-icon-${task.id}"),
           animatedVisibilityScope = animatedVisibilityScope,
         ),
@@ -508,8 +517,8 @@ private fun TaskCard(
         )
       }
     }
-    } // with(sharedTransitionScope)
   }
+  } // with(sharedTransitionScope)
 }
 
 private fun getCategoryLabel(context: Context, category: CategoryInfo): String {

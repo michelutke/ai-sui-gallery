@@ -16,9 +16,11 @@
 
 package com.google.ai.edge.gallery.ui.modelmanager
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -66,10 +68,14 @@ fun ModelManager(
     }
   }
 
-  BackHandler { navigateUp() }
-
+  with(sharedTransitionScope) {
   Scaffold(
-    modifier = modifier,
+    modifier = modifier.sharedBounds(
+      rememberSharedContentState(key = "task-card-${task.id}"),
+      animatedVisibilityScope = animatedVisibilityScope,
+      enter = fadeIn(animationSpec = tween(300)),
+      exit = fadeOut(animationSpec = tween(300)),
+    ),
     containerColor = MaterialTheme.colorScheme.surfaceContainer,
     topBar = {
       GalleryTopAppBar(
@@ -90,4 +96,5 @@ fun ModelManager(
       modifier = Modifier.fillMaxSize(),
     )
   }
+  } // with(sharedTransitionScope)
 }

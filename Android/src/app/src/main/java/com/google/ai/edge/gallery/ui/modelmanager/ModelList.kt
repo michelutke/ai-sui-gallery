@@ -184,7 +184,7 @@ fun ModelList(
           ) {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
               with(sharedTransitionScope) {
-                Modifier.sharedElement(
+                Modifier.sharedBounds(
                   rememberSharedContentState(key = "task-icon-${task.id}"),
                   animatedVisibilityScope = animatedVisibilityScope,
                 )

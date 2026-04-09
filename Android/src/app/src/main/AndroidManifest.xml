@@ -21,8 +21,8 @@
 
     <uses-sdk
         android:minSdkVersion="31"
-        android:compileSdkVersion ="35"
-        android:targetSdkVersion="35" />
+        android:compileSdkVersion ="36"
+        android:targetSdkVersion="36" />
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -58,6 +58,7 @@
         android:label="Showcases"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Gallery"
         tools:targetApi="31">
         <!--

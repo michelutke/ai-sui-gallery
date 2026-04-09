@@ -1,10 +1,8 @@
 package com.google.ai.edge.gallery.ui.home
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -25,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Memory
@@ -35,15 +32,10 @@ import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -127,57 +119,18 @@ val articles = listOf(
   ),
 )
 
+fun getArticleById(id: Int): LearningArticle? = articles.find { it.id == id }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LearningsScreen(
-  modifier: Modifier = Modifier,
-  onDetailVisibilityChanged: (Boolean) -> Unit = {},
-) {
-  var selectedArticle by remember { mutableStateOf<LearningArticle?>(null) }
-
-  BackHandler(enabled = selectedArticle != null) {
-    selectedArticle = null
-    onDetailVisibilityChanged(false)
-  }
-
-  SharedTransitionLayout(modifier = modifier) {
-    AnimatedContent(
-      targetState = selectedArticle,
-      label = "learnings_nav",
-    ) { article ->
-      if (article != null) {
-        ArticleDetailScreen(
-          article = article,
-          sharedTransitionScope = this@SharedTransitionLayout,
-          animatedVisibilityScope = this@AnimatedContent,
-          onBack = {
-            selectedArticle = null
-            onDetailVisibilityChanged(false)
-          },
-        )
-      } else {
-        ArticleListScreen(
-          sharedTransitionScope = this@SharedTransitionLayout,
-          animatedVisibilityScope = this@AnimatedContent,
-          onArticleClick = {
-            selectedArticle = it
-            onDetailVisibilityChanged(true)
-          },
-        )
-      }
-    }
-  }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ArticleListScreen(
+  onArticleClick: (Int) -> Unit,
   sharedTransitionScope: SharedTransitionScope,
   animatedVisibilityScope: AnimatedVisibilityScope,
-  onArticleClick: (LearningArticle) -> Unit,
+  modifier: Modifier = Modifier,
 ) {
   Column(
-    modifier = Modifier
+    modifier = modifier
       .fillMaxSize()
       .background(MaterialTheme.colorScheme.surfaceContainer)
       .verticalScroll(rememberScrollState())
@@ -206,7 +159,7 @@ private fun ArticleListScreen(
         article = article,
         sharedTransitionScope = sharedTransitionScope,
         animatedVisibilityScope = animatedVisibilityScope,
-        onClick = { onArticleClick(article) },
+        onClick = { onArticleClick(article.id) },
       )
       Spacer(modifier = Modifier.height(16.dp))
     }
@@ -232,10 +185,10 @@ private fun LearningCard(
       modifier = Modifier
         .fillMaxWidth()
         .sharedBounds(
-          rememberSharedContentState(key = "card-${article.id}"),
+          rememberSharedContentState(key = "article-card-${article.id}"),
           animatedVisibilityScope = animatedVisibilityScope,
-          enter = fadeIn(),
-          exit = fadeOut(),
+          enter = fadeIn(animationSpec = tween(300)),
+          exit = fadeOut(animationSpec = tween(300)),
         )
         .clickable(onClick = onClick),
     ) {
@@ -254,8 +207,8 @@ private fun LearningCard(
               contentDescription = null,
               modifier = Modifier
                 .padding(8.dp)
-                .sharedElement(
-                  rememberSharedContentState(key = "icon-${article.id}"),
+                .sharedBounds(
+                  rememberSharedContentState(key = "article-icon-${article.id}"),
                   animatedVisibilityScope = animatedVisibilityScope,
                 ),
               tint = MaterialTheme.colorScheme.primary,
@@ -285,8 +238,8 @@ private fun LearningCard(
           text = article.title,
           style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
           color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier.sharedElement(
-            rememberSharedContentState(key = "title-${article.id}"),
+          modifier = Modifier.sharedBounds(
+            rememberSharedContentState(key = "article-title-${article.id}"),
             animatedVisibilityScope = animatedVisibilityScope,
           ),
         )
@@ -333,39 +286,29 @@ private fun LearningCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ArticleDetailScreen(
+fun ArticleDetailScreen(
   article: LearningArticle,
   sharedTransitionScope: SharedTransitionScope,
   animatedVisibilityScope: AnimatedVisibilityScope,
   onBack: () -> Unit,
+  modifier: Modifier = Modifier,
 ) {
   with(sharedTransitionScope) {
     Column(
-      modifier = Modifier
+      modifier = modifier
         .fillMaxSize()
         .sharedBounds(
-          rememberSharedContentState(key = "card-${article.id}"),
+          rememberSharedContentState(key = "article-card-${article.id}"),
           animatedVisibilityScope = animatedVisibilityScope,
-          enter = fadeIn(),
-          exit = fadeOut(),
+          enter = fadeIn(animationSpec = tween(300)),
+          exit = fadeOut(animationSpec = tween(300)),
         )
         .background(MaterialTheme.colorScheme.surfaceContainer)
         .verticalScroll(rememberScrollState()),
     ) {
-      Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        IconButton(onClick = onBack) {
-          Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-            contentDescription = "Back",
-            tint = MaterialTheme.colorScheme.onSurface,
-          )
-        }
-      }
-
       Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+        Spacer(modifier = Modifier.height(24.dp))
+
         Row(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -380,8 +323,8 @@ private fun ArticleDetailScreen(
               contentDescription = null,
               modifier = Modifier
                 .padding(8.dp)
-                .sharedElement(
-                  rememberSharedContentState(key = "icon-${article.id}"),
+                .sharedBounds(
+                  rememberSharedContentState(key = "article-icon-${article.id}"),
                   animatedVisibilityScope = animatedVisibilityScope,
                 ),
               tint = MaterialTheme.colorScheme.primary,
@@ -411,8 +354,8 @@ private fun ArticleDetailScreen(
           text = article.title,
           style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
           color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier.sharedElement(
-            rememberSharedContentState(key = "title-${article.id}"),
+          modifier = Modifier.sharedBounds(
+            rememberSharedContentState(key = "article-title-${article.id}"),
             animatedVisibilityScope = animatedVisibilityScope,
           ),
         )

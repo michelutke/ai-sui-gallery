@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -49,12 +48,12 @@ private val bottomNavItems = listOf(
 fun MainScreen(
   modelManagerViewModel: ModelManagerViewModel,
   navigateToTaskScreen: (Task) -> Unit,
+  navigateToArticle: (Int) -> Unit,
   sharedTransitionScope: SharedTransitionScope,
   animatedVisibilityScope: AnimatedVisibilityScope,
   modifier: Modifier = Modifier,
 ) {
   var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-  var showingArticleDetail by rememberSaveable { mutableStateOf(false) }
   val context = LocalContext.current
 
   val requestPermissionLauncher =
@@ -75,16 +74,14 @@ fun MainScreen(
   Scaffold(
     containerColor = MaterialTheme.colorScheme.surfaceContainer,
     bottomBar = {
-      if (!showingArticleDetail) {
-        NavigationBar {
-          bottomNavItems.forEachIndexed { index, item ->
-            NavigationBarItem(
-              selected = selectedTab == index,
-              onClick = { selectedTab = index },
-              icon = { Icon(item.icon, contentDescription = item.label) },
-              label = { Text(item.label) },
-            )
-          }
+      NavigationBar {
+        bottomNavItems.forEachIndexed { index, item ->
+          NavigationBarItem(
+            selected = selectedTab == index,
+            onClick = { selectedTab = index },
+            icon = { Icon(item.icon, contentDescription = item.label) },
+            label = { Text(item.label) },
+          )
         }
       }
     },
@@ -99,8 +96,10 @@ fun MainScreen(
         modifier = Modifier.padding(innerPadding),
       )
       1 -> LearningsScreen(
+        onArticleClick = navigateToArticle,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedVisibilityScope,
         modifier = Modifier.padding(innerPadding),
-        onDetailVisibilityChanged = { showingArticleDetail = it },
       )
       2 -> SettingsScreen(
         modelManagerViewModel = modelManagerViewModel,

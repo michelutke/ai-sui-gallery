@@ -38,12 +38,12 @@ rootProject.file("local.properties").let { file ->
 
 android {
   namespace = "com.google.ai.edge.gallery"
-  compileSdk = 35
+  compileSdk = 36
 
   defaultConfig {
     applicationId = "com.appswithlove.ai"
     minSdk = 31
-    targetSdk = 35
+    targetSdk = 36
     versionCode = 1
     versionName = "1.0.0"
 
@@ -103,7 +103,9 @@ dependencies {
   implementation(libs.androidx.ui.graphics)
   implementation(libs.androidx.ui.tooling.preview)
   implementation(libs.androidx.material3)
-  implementation(libs.androidx.compose.navigation)
+  implementation(libs.androidx.navigation3.runtime)
+  implementation(libs.androidx.navigation3.ui)
+  implementation(libs.androidx.lifecycle.viewmodel.navigation3)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.kotlin.reflect)
   implementation(libs.material.icon.extended)
