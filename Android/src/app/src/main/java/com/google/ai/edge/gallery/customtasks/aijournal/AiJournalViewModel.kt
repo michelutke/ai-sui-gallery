@@ -6,8 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.google.ai.edge.gallery.customtasks.aijournal.data.ChatMessageEntity
 import com.google.ai.edge.gallery.customtasks.aijournal.data.EntryWithEntities
 import com.google.ai.edge.gallery.customtasks.aijournal.data.JournalDao
-import com.google.ai.edge.gallery.customtasks.aijournal.data.JournalEntry
-import com.google.ai.edge.gallery.customtasks.aijournal.data.JournalEntity
 import com.google.ai.edge.gallery.customtasks.common.CustomTask
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.SAMPLE_RATE
@@ -16,7 +14,6 @@ import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +69,10 @@ class AiJournalViewModel @Inject constructor(
     loadHistory()
     loadFilterOptions()
     loadChatHistory()
+    journalTools.onEntrySaved = {
+      loadHistory()
+      loadFilterOptions()
+    }
   }
 
   private fun loadChatHistory() {
@@ -325,16 +326,8 @@ class AiJournalViewModel @Inject constructor(
     inputType: String,
     processLog: String? = null,
   ) {
-    val extracted = parseExtraction(response)
-    val displayText = if (extracted != null) {
-      response.replace(Regex("\\{[^}]*\"summary\"[^}]*\\}"), "").trim()
-        .ifBlank { buildConfirmation(extracted) }
-    } else {
-      response
-    }
-
     val aiMessage = ChatMessage(
-      text = displayText,
+      text = response,
       isUser = false,
       isLoading = false,
       processLog = processLog,
@@ -349,31 +342,6 @@ class AiJournalViewModel @Inject constructor(
     }
 
     persistChatMessage(aiMessage)
-
-    // Persist if extraction found (= journal entry, not a query)
-    if (extracted != null) {
-      viewModelScope.launch(Dispatchers.IO) {
-        persistEntry(userText, inputType, extracted)
-        loadHistory()
-        loadFilterOptions()
-      }
-    }
-  }
-
-  private fun buildConfirmation(data: JsonObject): String {
-    val parts = mutableListOf<String>()
-    data.get("summary")?.asString?.let { parts.add(it) }
-    data.getAsJsonArray("people")?.let { arr ->
-      if (arr.size() > 0) parts.add("People: ${arr.joinToString { it.asString }}")
-    }
-    data.get("mood")?.asString?.let { if (it.isNotBlank()) parts.add("Mood: $it") }
-    data.getAsJsonArray("activities")?.let { arr ->
-      if (arr.size() > 0) parts.add("Activities: ${arr.joinToString { it.asString }}")
-    }
-    data.getAsJsonArray("locations")?.let { arr ->
-      if (arr.size() > 0) parts.add("Locations: ${arr.joinToString { it.asString }}")
-    }
-    return "Saved. " + parts.joinToString(", ")
   }
 
   private fun buildProcessLog(
@@ -394,49 +362,6 @@ class AiJournalViewModel @Inject constructor(
     }
     sections.add(mapOf("type" to "response", "content" to response))
     return gson.toJson(sections)
-  }
-
-  private fun parseExtraction(response: String): JsonObject? {
-    return try {
-      // Find JSON block in response
-      val jsonPattern = Regex("\\{[^{}]*\"summary\"[^{}]*\\}")
-      val match = jsonPattern.find(response) ?: return null
-      gson.fromJson(match.value, JsonObject::class.java)
-    } catch (e: Exception) {
-      Log.w(TAG, "Failed to parse extraction", e)
-      null
-    }
-  }
-
-  private suspend fun persistEntry(rawText: String, inputType: String, data: JsonObject) {
-    val entryId = journalDao.insertEntry(
-      JournalEntry(
-        timestamp = System.currentTimeMillis(),
-        rawText = rawText,
-        inputType = inputType,
-      )
-    )
-
-    val entities = mutableListOf<JournalEntity>()
-    data.getAsJsonArray("people")?.forEach { el ->
-      entities.add(JournalEntity(entryId = entryId, entityType = "PERSON", entityValue = el.asString))
-    }
-    data.getAsJsonArray("activities")?.forEach { el ->
-      entities.add(JournalEntity(entryId = entryId, entityType = "ACTIVITY", entityValue = el.asString))
-    }
-    data.get("mood")?.asString?.takeIf { it.isNotBlank() }?.let {
-      entities.add(JournalEntity(entryId = entryId, entityType = "MOOD", entityValue = it))
-    }
-    data.getAsJsonArray("locations")?.forEach { el ->
-      entities.add(JournalEntity(entryId = entryId, entityType = "LOCATION", entityValue = el.asString))
-    }
-    data.getAsJsonArray("events")?.forEach { el ->
-      entities.add(JournalEntity(entryId = entryId, entityType = "EVENT", entityValue = el.asString))
-    }
-
-    if (entities.isNotEmpty()) {
-      journalDao.insertEntities(entities)
-    }
   }
 
   fun loadHistory() {
