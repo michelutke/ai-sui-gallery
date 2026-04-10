@@ -8,6 +8,7 @@ import com.google.ai.edge.gallery.customtasks.aijournal.data.EntryWithEntities
 import com.google.ai.edge.gallery.customtasks.aijournal.data.JournalDao
 import com.google.ai.edge.gallery.customtasks.aijournal.data.JournalEntry
 import com.google.ai.edge.gallery.customtasks.aijournal.data.JournalEntity
+import com.google.ai.edge.gallery.customtasks.common.CustomTask
 import com.google.ai.edge.gallery.data.Model
 import com.google.ai.edge.gallery.data.SAMPLE_RATE
 import com.google.ai.edge.gallery.data.Task
@@ -17,10 +18,6 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,8 +34,9 @@ data class ChatMessage(
   val timestamp: Long = System.currentTimeMillis(),
   val inputType: String = "text", // "text", "voice_gemma", "voice_stt"
   val isLoading: Boolean = false,
-  val audioDurationSec: Float? = null, // for voice messages
-  val transcript: String? = null, // LLM-generated transcript for voice messages
+  val audioDurationSec: Float? = null,
+  val transcript: String? = null,
+  val processLog: String? = null, // tool calls + thinking steps during inference
 )
 
 data class AiJournalUiState(
@@ -59,14 +57,16 @@ data class AiJournalUiState(
 @HiltViewModel
 class AiJournalViewModel @Inject constructor(
   private val journalDao: JournalDao,
+  private val journalTools: AiJournalTools,
+  customTasks: Set<@JvmSuppressWildcards CustomTask>,
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(AiJournalUiState())
   val uiState = _uiState.asStateFlow()
   private val gson = Gson()
+  private val journalTask = customTasks.filterIsInstance<AiJournalTask>().first()
 
-  /** Exposed for AudioRecorderPanel which needs a Task reference. */
-  val task: Task get() = AiJournalTask().task
+  val task: Task get() = journalTask.task
 
   init {
     loadHistory()
@@ -87,6 +87,7 @@ class AiJournalViewModel @Inject constructor(
             inputType = entity.inputType,
             audioDurationSec = entity.audioDurationSec,
             transcript = entity.transcript,
+            processLog = entity.processLog,
           )
         }
         _uiState.update { it.copy(messages = messages) }
@@ -105,6 +106,7 @@ class AiJournalViewModel @Inject constructor(
           inputType = message.inputType,
           audioDurationSec = message.audioDurationSec,
           transcript = message.transcript,
+          processLog = message.processLog,
         )
       )
     }
@@ -124,22 +126,30 @@ class AiJournalViewModel @Inject constructor(
 
     viewModelScope.launch(Dispatchers.Default) {
       try {
-        val context = assembleContext(text)
-        val fullPrompt = if (context.isNotBlank()) {
-          "<<JOURNAL CONTEXT>>\n$context\n<</JOURNAL CONTEXT>>\n\nUser: $text"
-        } else {
-          text
+        val accumulated = StringBuilder()
+        val thinkingAccum = StringBuilder()
+        val toolCalls = java.util.concurrent.CopyOnWriteArrayList<Pair<String, String>>()
+
+        journalTools.onToolCalled = { call, result ->
+          toolCalls.add(call to result)
         }
 
-        val accumulated = StringBuilder()
         LlmChatModelHelper.runInference(
           model = model,
-          input = fullPrompt,
-          resultListener = { partialResult, done, _ ->
+          input = text,
+          resultListener = { partialResult, done, partialThinking ->
             accumulated.append(partialResult)
+            if (partialThinking != null) thinkingAccum.append(partialThinking)
             if (done) {
               val response = accumulated.toString()
-              processResponse(response, text, inputType)
+              val log = buildProcessLog(
+                userInput = text,
+                thinking = thinkingAccum.toString(),
+                toolCalls = toolCalls,
+                response = response,
+              )
+              journalTools.onToolCalled = { _, _ -> }
+              processResponse(response, text, inputType, log)
             } else {
               _uiState.update { state ->
                 val msgs = state.messages.toMutableList()
@@ -207,41 +217,62 @@ class AiJournalViewModel @Inject constructor(
       isProcessing = true,
     ) }
 
+    // Pass 1: reset without tools for audio transcription, then route transcript through sendMessage
     viewModelScope.launch(Dispatchers.Default) {
       try {
+        // Temporarily switch to audio-only mode (tools break audio processing)
+        LlmChatModelHelper.resetConversation(
+          model = model,
+          supportAudio = true,
+        )
+
         val wavBytes = pcmToWav(pcmBytes, SAMPLE_RATE)
-        val prompt = "Process this voice journal entry."
         val accumulated = StringBuilder()
         LlmChatModelHelper.runInference(
           model = model,
-          input = prompt,
+          input = "Transcribe this voice message exactly. Output only the spoken words.",
           audioClips = listOf(wavBytes),
           resultListener = { partialResult, done, _ ->
             accumulated.append(partialResult)
             if (done) {
-              val response = accumulated.toString()
-              // Update the user voice bubble with the transcript
+              val transcript = accumulated.toString().trim()
+              // Update voice bubble with transcript
               _uiState.update { state ->
                 val msgs = state.messages.toMutableList()
                 val userIdx = msgs.indexOfFirst { it.id == userMsgId }
                 if (userIdx >= 0) {
-                  msgs[userIdx] = msgs[userIdx].copy(transcript = response)
+                  msgs[userIdx] = msgs[userIdx].copy(transcript = transcript)
                 }
                 state.copy(messages = msgs)
               }
-              // Persist transcript
               viewModelScope.launch(Dispatchers.IO) {
-                journalDao.updateTranscript(userMsgId, response)
+                journalDao.updateTranscript(userMsgId, transcript)
               }
-              processResponse(response, response, "voice_gemma")
+              // Restore tools + send on a new coroutine to avoid deadlocking the engine
+              viewModelScope.launch(Dispatchers.Default) {
+                LlmChatModelHelper.resetConversation(
+                  model = model,
+                  supportAudio = true,
+                  systemInstruction = Contents.of(listOf(Content.Text(JOURNAL_SYSTEM_PROMPT))),
+                  tools = journalTask.tools,
+                )
+                _uiState.update { state ->
+                  val msgs = state.messages.toMutableList()
+                  if (msgs.isNotEmpty() && !msgs.last().isUser) {
+                    msgs.removeAt(msgs.lastIndex)
+                  }
+                  state.copy(messages = msgs, isProcessing = false)
+                }
+                sendMessage(transcript, model, "voice_gemma")
+              }
             } else {
               _uiState.update { state ->
                 val msgs = state.messages.toMutableList()
                 if (msgs.isNotEmpty() && !msgs.last().isUser) {
                   msgs[msgs.lastIndex] = ChatMessage(
-                    text = accumulated.toString(),
+                    text = "Transcribing...",
                     isUser = false,
-                    isLoading = false,
+                    isLoading = true,
                   )
                 }
                 state.copy(messages = msgs)
@@ -250,7 +281,14 @@ class AiJournalViewModel @Inject constructor(
           },
           cleanUpListener = {},
           onError = { error ->
-            Log.e(TAG, "Audio inference error: $error")
+            Log.e(TAG, "Audio transcription error: $error")
+            // Restore tools even on error
+            LlmChatModelHelper.resetConversation(
+              model = model,
+              supportAudio = true,
+              systemInstruction = Contents.of(listOf(Content.Text(JOURNAL_SYSTEM_PROMPT))),
+              tools = journalTask.tools,
+            )
             _uiState.update { state ->
               val msgs = state.messages.toMutableList()
               if (msgs.isNotEmpty() && !msgs.last().isUser) {
@@ -281,17 +319,26 @@ class AiJournalViewModel @Inject constructor(
     }
   }
 
-  private fun processResponse(response: String, userText: String, inputType: String) {
+  private fun processResponse(
+    response: String,
+    userText: String,
+    inputType: String,
+    processLog: String? = null,
+  ) {
     val extracted = parseExtraction(response)
     val displayText = if (extracted != null) {
-      // Remove JSON block from display, show only confirmation
       response.replace(Regex("\\{[^}]*\"summary\"[^}]*\\}"), "").trim()
         .ifBlank { buildConfirmation(extracted) }
     } else {
       response
     }
 
-    val aiMessage = ChatMessage(text = displayText, isUser = false, isLoading = false)
+    val aiMessage = ChatMessage(
+      text = displayText,
+      isUser = false,
+      isLoading = false,
+      processLog = processLog,
+    )
 
     _uiState.update { state ->
       val msgs = state.messages.toMutableList()
@@ -327,6 +374,26 @@ class AiJournalViewModel @Inject constructor(
       if (arr.size() > 0) parts.add("Locations: ${arr.joinToString { it.asString }}")
     }
     return "Saved. " + parts.joinToString(", ")
+  }
+
+  private fun buildProcessLog(
+    userInput: String,
+    thinking: String,
+    toolCalls: List<Pair<String, String>>,
+    response: String,
+  ): String {
+    val sections = mutableListOf<Map<String, String>>()
+    sections.add(mapOf("type" to "system", "content" to JOURNAL_SYSTEM_PROMPT.trim()))
+    sections.add(mapOf("type" to "input", "content" to userInput))
+    for ((call, result) in toolCalls) {
+      sections.add(mapOf("type" to "tool_call", "content" to call))
+      sections.add(mapOf("type" to "tool_result", "content" to result))
+    }
+    if (thinking.isNotBlank()) {
+      sections.add(mapOf("type" to "thinking", "content" to thinking))
+    }
+    sections.add(mapOf("type" to "response", "content" to response))
+    return gson.toJson(sections)
   }
 
   private fun parseExtraction(response: String): JsonObject? {
@@ -370,62 +437,6 @@ class AiJournalViewModel @Inject constructor(
     if (entities.isNotEmpty()) {
       journalDao.insertEntities(entities)
     }
-  }
-
-  private suspend fun assembleContext(query: String): String {
-    val sb = StringBuilder()
-    val now = System.currentTimeMillis()
-    val dayMs = 86_400_000L
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-
-    // Tier 1: Raw entries last 7 days
-    val tier1Start = now - 7 * dayMs
-    val recentEntries = journalDao.getEntriesBetween(tier1Start, now)
-    if (recentEntries.isNotEmpty()) {
-      sb.appendLine("=== Recent entries (last 7 days) ===")
-      for (entry in recentEntries) {
-        val entities = journalDao.getEntitiesForEntry(entry.id)
-        sb.appendLine("[${dateFormat.format(Date(entry.timestamp))}] ${entry.rawText}")
-        if (entities.isNotEmpty()) {
-          sb.appendLine("  Tags: ${entities.joinToString { "${it.entityType}:${it.entityValue}" }}")
-        }
-      }
-    }
-
-    // Tier 2: Weekly summaries weeks 2-8
-    val tier2Start = now - 8 * 7 * dayMs
-    val weeklySummaries = journalDao.getWeeklySummariesBetween(tier2Start, tier1Start)
-    if (weeklySummaries.isNotEmpty()) {
-      sb.appendLine("\n=== Weekly summaries (weeks 2-8) ===")
-      for (summary in weeklySummaries) {
-        sb.appendLine("[${dateFormat.format(Date(summary.periodStart))}] ${summary.summaryText}")
-      }
-    }
-
-    // Tier 3: Monthly summaries months 3-6
-    val tier3Start = now - 6 * 30 * dayMs
-    val monthlySummaries = journalDao.getMonthlySummariesFrom(tier3Start)
-    if (monthlySummaries.isNotEmpty()) {
-      sb.appendLine("\n=== Monthly summaries ===")
-      for (summary in monthlySummaries) {
-        sb.appendLine("[${dateFormat.format(Date(summary.periodStart))}] ${summary.summaryText}")
-      }
-    }
-
-    // FTS5 search for entity matches
-    try {
-      val ftsResults = journalDao.searchEntries(query, limit = 5)
-      if (ftsResults.isNotEmpty()) {
-        sb.appendLine("\n=== Relevant past entries ===")
-        for (entry in ftsResults) {
-          sb.appendLine("[${dateFormat.format(Date(entry.timestamp))}] ${entry.rawText}")
-        }
-      }
-    } catch (e: Exception) {
-      Log.w(TAG, "FTS search failed", e)
-    }
-
-    return sb.toString()
   }
 
   fun loadHistory() {
@@ -514,6 +525,7 @@ class AiJournalViewModel @Inject constructor(
       LlmChatModelHelper.resetConversation(
         model = model,
         systemInstruction = Contents.of(listOf(Content.Text(JOURNAL_SYSTEM_PROMPT))),
+        tools = journalTask.tools,
       )
     } catch (e: Exception) {
       Log.w(TAG, "Failed to reset conversation", e)

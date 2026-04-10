@@ -12,21 +12,30 @@ import com.google.ai.edge.gallery.data.Task
 import com.google.ai.edge.gallery.ui.llmchat.LlmChatModelHelper
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.ToolProvider
+import com.google.ai.edge.litertlm.tool
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 
-internal const val JOURNAL_SYSTEM_PROMPT = """You are a personal journal assistant. When the user shares a journal entry:
-1. Extract structured data and return a JSON block: {"summary": "...", "people": [], "activities": [], "mood": "...", "locations": [], "events": []}
-2. After the JSON block, respond with a brief natural confirmation of what was saved.
+internal const val JOURNAL_SYSTEM_PROMPT = """You are a personal journal assistant running on-device.
 
-When the user asks a question about their past:
-1. Search the provided journal context for relevant information.
-2. Answer naturally, citing dates and details from the journal.
-3. If you don't have enough information, say so honestly.
+## Journal Entry Mode
+When the user shares a journal entry (describing experiences, thoughts, feelings, or events they lived through):
+1. Extract structured data as a JSON block: {"summary": "...", "people": [], "activities": [], "mood": "...", "locations": [], "events": []}
+2. After the JSON block, respond with a brief natural confirmation.
 
-Always distinguish between a journal entry (user sharing/reflecting about their day) and a question (user asking about the past). For journal entries, ALWAYS include the JSON extraction block."""
+ONLY produce a JSON block when the user is clearly sharing real experiences or reflections. If the input is a greeting, small talk, ambiguous, or you are unsure — respond conversationally. NEVER fabricate or hallucinate a journal entry.
 
-class AiJournalTask @Inject constructor() : CustomTask {
+## Query Mode
+When the user asks about their past, use the searchJournal tool to look up relevant entries. You can call it multiple times with different keywords. Answer naturally using the results, citing dates and details.
+If no results are found, say you could not find anything related in the journal."""
+
+class AiJournalTask @Inject constructor(
+  journalTools: AiJournalTools,
+) : CustomTask {
+
+  val tools: List<ToolProvider> = listOf(tool(journalTools))
+
   override val task = Task(
     id = "ai_journal",
     label = "AI Journal",
@@ -51,6 +60,7 @@ class AiJournalTask @Inject constructor() : CustomTask {
       supportAudio = model.llmSupportAudio,
       onDone = onDone,
       systemInstruction = Contents.of(listOf(Content.Text(JOURNAL_SYSTEM_PROMPT))),
+      tools = tools,
     )
   }
 

@@ -3,16 +3,18 @@ package com.google.ai.edge.gallery.customtasks.aijournal
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Terminal
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -34,6 +36,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -44,12 +48,16 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -369,12 +377,13 @@ fun AiJournalChatTab(
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ChatBubble(message: ChatMessage) {
   val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
   val isVoice = message.inputType.startsWith("voice_")
-  var showTranscript by remember { mutableStateOf(false) }
+  var showProcessLog by remember { mutableStateOf(false) }
+  val hasProcessLog = !message.isUser && message.processLog != null
 
   Row(
     modifier = Modifier.fillMaxWidth(),
@@ -396,12 +405,10 @@ private fun ChatBubble(message: ChatMessage) {
           else MaterialTheme.colorScheme.surfaceVariant
         )
         .then(
-          if (isVoice && message.transcript != null)
-            Modifier.combinedClickable(
-              onClick = {},
-              onLongClick = { showTranscript = !showTranscript },
-            )
-          else Modifier
+          if (hasProcessLog) Modifier.combinedClickable(
+            onClick = {},
+            onLongClick = { showProcessLog = true },
+          ) else Modifier
         )
         .padding(12.dp),
     ) {
@@ -429,7 +436,6 @@ private fun ChatBubble(message: ChatMessage) {
               style = MaterialTheme.typography.bodyMedium,
               color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
-            // Engine badge
             val engine = when (message.inputType) {
               "voice_gemma" -> "Gemma"
               "voice_stt" -> "STT"
@@ -449,29 +455,6 @@ private fun ChatBubble(message: ChatMessage) {
               )
             }
           }
-
-          // Transcript on long-press
-          AnimatedVisibility(
-            visible = showTranscript && message.transcript != null,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut(),
-          ) {
-            Text(
-              text = message.transcript ?: "",
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-              modifier = Modifier.padding(top = 6.dp),
-            )
-          }
-
-          if (message.transcript != null && !showTranscript) {
-            Text(
-              text = "Long-press to show transcript",
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f),
-              modifier = Modifier.padding(top = 2.dp),
-            )
-          }
         } else {
           Text(
             text = message.text,
@@ -482,14 +465,168 @@ private fun ChatBubble(message: ChatMessage) {
         }
       }
 
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        if (hasProcessLog) {
+          Text(
+            text = "Long-press for details",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.padding(top = 4.dp),
+          )
+        }
+        Text(
+          text = timeFormat.format(Date(message.timestamp)),
+          style = MaterialTheme.typography.labelSmall,
+          color = if (message.isUser)
+            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+          else
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+          modifier = Modifier.padding(top = 4.dp),
+        )
+      }
+    }
+  }
+
+  // Process log bottom sheet
+  if (showProcessLog && message.processLog != null) {
+    ModalBottomSheet(
+      onDismissRequest = { showProcessLog = false },
+      sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+      ProcessLogSheet(message.processLog)
+    }
+  }
+}
+
+@Composable
+private fun ProcessLogSheet(json: String) {
+  val sections = remember(json) {
+    try {
+      com.google.gson.Gson().fromJson(
+        json,
+        com.google.gson.reflect.TypeToken.getParameterized(
+          List::class.java,
+          Map::class.java,
+        ).type,
+      ) as? List<Map<String, String>> ?: emptyList()
+    } catch (_: Exception) { emptyList() }
+  }
+
+  Column(
+    modifier = Modifier
+      .padding(horizontal = 20.dp)
+      .padding(bottom = 32.dp)
+      .verticalScroll(rememberScrollState()),
+    verticalArrangement = Arrangement.spacedBy(16.dp),
+  ) {
+    Text("AI Process Log", style = MaterialTheme.typography.titleMedium)
+    HorizontalDivider()
+
+    for (section in sections) {
+      val type = section["type"] ?: continue
+      val content = section["content"] ?: continue
+
+      when (type) {
+        "system" -> ProcessSection(
+          icon = Icons.Filled.Terminal,
+          label = "System Prompt",
+          content = content,
+          containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+          maxLines = 4,
+        )
+        "input" -> ProcessSection(
+          icon = Icons.Filled.SmartToy,
+          label = "User Input",
+          content = content,
+          containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+        )
+        "tool_call" -> ProcessSection(
+          icon = Icons.Filled.Search,
+          label = "Tool Call",
+          content = content,
+          containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+        )
+        "tool_result" -> ProcessSection(
+          icon = null,
+          label = "Tool Result",
+          content = content,
+          containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+        )
+        "thinking" -> ProcessSection(
+          icon = Icons.Filled.Psychology,
+          label = "AI Thinking",
+          content = content,
+          containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+        )
+        "response" -> ProcessSection(
+          icon = Icons.Filled.SmartToy,
+          label = "Final Response",
+          content = content,
+          containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
+      }
+    }
+  }
+}
+
+@Composable
+private fun ProcessSection(
+  icon: androidx.compose.ui.graphics.vector.ImageVector?,
+  label: String,
+  content: String,
+  containerColor: androidx.compose.ui.graphics.Color,
+  maxLines: Int = Int.MAX_VALUE,
+) {
+  var expanded by remember { mutableStateOf(false) }
+  val isTruncated = maxLines < Int.MAX_VALUE && !expanded
+
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clip(RoundedCornerShape(12.dp))
+      .background(containerColor)
+      .then(
+        if (isTruncated) Modifier.combinedClickable(
+          onClick = { expanded = true },
+          onLongClick = {},
+        ) else Modifier
+      )
+      .padding(12.dp),
+    verticalArrangement = Arrangement.spacedBy(6.dp),
+  ) {
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+      if (icon != null) {
+        Icon(
+          imageVector = icon,
+          contentDescription = null,
+          modifier = Modifier.size(16.dp),
+          tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
       Text(
-        text = timeFormat.format(Date(message.timestamp)),
+        text = label,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    Text(
+      text = content,
+      style = MaterialTheme.typography.bodySmall,
+      color = MaterialTheme.colorScheme.onSurface,
+      maxLines = if (expanded) Int.MAX_VALUE else maxLines,
+    )
+    if (isTruncated) {
+      Text(
+        text = "Tap to expand",
         style = MaterialTheme.typography.labelSmall,
-        color = if (message.isUser)
-          MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-        else
-          MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        modifier = Modifier.align(Alignment.End).padding(top = 4.dp),
+        color = MaterialTheme.colorScheme.primary,
       )
     }
   }

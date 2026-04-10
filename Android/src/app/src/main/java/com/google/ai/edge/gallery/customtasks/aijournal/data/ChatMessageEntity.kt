@@ -13,4 +13,5 @@ data class ChatMessageEntity(
   val isLoading: Boolean = false,
   val audioDurationSec: Float? = null,
   val transcript: String? = null,
+  val processLog: String? = null,
 )

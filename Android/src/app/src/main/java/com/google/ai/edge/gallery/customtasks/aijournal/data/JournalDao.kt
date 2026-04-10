@@ -81,6 +81,24 @@ interface JournalDao {
   @Query("SELECT je.* FROM journal_entries je JOIN journal_entries_fts fts ON je.rowid = fts.rowid WHERE journal_entries_fts MATCH :query ORDER BY je.timestamp DESC LIMIT :limit")
   suspend fun searchEntries(query: String, limit: Int = 20): List<JournalEntry>
 
+  // -- Entity keyword search (across all entity types) --
+
+  @Query(
+    """
+    SELECT DISTINCT je.* FROM journal_entries je
+    INNER JOIN journal_entities ent ON ent.entryId = je.id
+    WHERE ent.entityValue LIKE '%' || :keyword || '%'
+    ORDER BY je.timestamp DESC
+    LIMIT :limit
+    """
+  )
+  suspend fun searchEntitiesByKeyword(keyword: String, limit: Int = 5): List<JournalEntry>
+
+  // -- Direct LIKE search fallback (more reliable than FTS) --
+
+  @Query("SELECT * FROM journal_entries WHERE rawText LIKE '%' || :keyword || '%' ORDER BY timestamp DESC LIMIT :limit")
+  suspend fun searchEntriesByKeyword(keyword: String, limit: Int = 5): List<JournalEntry>
+
   // -- Aggregations for History tab --
 
   @Query(

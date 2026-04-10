@@ -16,9 +16,15 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 internal object AiJournalModule {
   @Provides
+  @Singleton
+  fun provideTools(journalDao: JournalDao): AiJournalTools {
+    return AiJournalTools(journalDao)
+  }
+
+  @Provides
   @IntoSet
-  fun provideTask(): CustomTask {
-    return AiJournalTask()
+  fun provideTask(tools: AiJournalTools): CustomTask {
+    return AiJournalTask(tools)
   }
 
   @Provides

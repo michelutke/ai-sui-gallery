@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 @Database(
   entities = [JournalEntry::class, JournalEntity::class, JournalSummary::class, JournalEntryFts::class, ChatMessageEntity::class],
-  version = 2,
+  version = 3,
   exportSchema = false,
 )
 abstract class JournalDatabase : RoomDatabase() {
