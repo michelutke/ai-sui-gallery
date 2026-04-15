@@ -19,8 +19,6 @@ import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
-  // Note: set apply to true to enable google-services (requires google-services.json).
-  alias(libs.plugins.google.services) apply false
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.kotlin.serialization)
@@ -37,7 +35,7 @@ rootProject.file("local.properties").let { file ->
 }
 
 android {
-  namespace = "com.google.ai.edge.gallery"
+  namespace = "com.appswithlove.ai"
   compileSdk = 36
 
   defaultConfig {
@@ -51,7 +49,7 @@ android {
     // Use the scheme of the "Redirect URLs" in HuggingFace app.
     manifestPlaceholders["appAuthRedirectScheme"] =
         "REPLACE_WITH_YOUR_REDIRECT_SCHEME_IN_HUGGINGFACE_APP"
-    manifestPlaceholders["applicationName"] = "com.google.ai.edge.gallery.GalleryApplication"
+    manifestPlaceholders["applicationName"] = "com.appswithlove.ai.GalleryApplication"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -72,7 +70,8 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = if (!System.getenv("KEYSTORE_PATH").isNullOrBlank())
         signingConfigs.getByName("release")
@@ -131,15 +130,14 @@ dependencies {
   implementation(libs.hilt.android)
   implementation(libs.hilt.navigation.compose)
   implementation(libs.play.services.oss.licenses)
-  implementation(platform(libs.firebase.bom))
-  implementation(libs.firebase.analytics)
-  implementation(libs.firebase.messaging)
   implementation(libs.androidx.exifinterface)
   implementation(libs.moshi.kotlin)
   implementation(libs.text.recognition)
   implementation(libs.graphics.shapes)
   implementation(libs.room.runtime)
   implementation(libs.room.ktx)
+  implementation(libs.androidx.documentfile)
+  implementation(libs.guava)
   ksp(libs.room.compiler)
   kapt(libs.hilt.android.compiler)
   testImplementation(libs.junit)
