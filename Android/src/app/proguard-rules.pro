@@ -61,7 +61,6 @@
 -dontwarn com.google.ai.edge.litertlm.**
 
 # Keep all @Tool-bearing classes in custom tasks (function-calling tool sets)
--keep class com.appswithlove.ai.customtasks.mobileactions.MobileActionsTools { *; }
 -keep class com.appswithlove.ai.customtasks.tinygarden.TinyGardenTools { *; }
 -keep class com.appswithlove.ai.customtasks.aijournal.AiJournalTools { *; }
 -keep class com.appswithlove.ai.customtasks.agentchat.AgentTools { *; }

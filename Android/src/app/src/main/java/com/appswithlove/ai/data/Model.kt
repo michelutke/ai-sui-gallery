@@ -225,9 +225,6 @@ data class Model(
   /** Whether the LLM model supports tiny garden. */
   val llmSupportTinyGarden: Boolean = false,
 
-  /** Whether the LLM model supports mobile actions. */
-  val llmSupportMobileActions: Boolean = false,
-
   /** Whether the LLM model supports thinking mode. */
   val llmSupportThinking: Boolean = false,
 

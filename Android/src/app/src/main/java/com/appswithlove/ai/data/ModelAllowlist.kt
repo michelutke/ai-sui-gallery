@@ -55,7 +55,6 @@ data class AllowedModel(
   val llmSupportImage: Boolean? = null,
   val llmSupportAudio: Boolean? = null,
   val llmSupportTinyGarden: Boolean? = null,
-  val llmSupportMobileActions: Boolean? = null,
   val llmSupportThinking: Boolean? = null,
   val minDeviceMemoryInGb: Int? = null,
   val bestForTaskTypes: List<String>? = null,
@@ -93,7 +92,6 @@ data class AllowedModel(
         taskTypes.contains(BuiltInTaskId.LLM_PROMPT_LAB) ||
         taskTypes.contains(BuiltInTaskId.LLM_ASK_AUDIO) ||
         taskTypes.contains(BuiltInTaskId.LLM_ASK_IMAGE) ||
-        taskTypes.contains(BuiltInTaskId.LLM_MOBILE_ACTIONS) ||
         taskTypes.contains(BuiltInTaskId.LLM_TINY_GARDEN)
     var configs: MutableList<Config> = mutableListOf()
     var llmMaxToken = 1024
@@ -179,7 +177,6 @@ data class AllowedModel(
       llmSupportImage = llmSupportImage == true,
       llmSupportAudio = llmSupportAudio == true,
       llmSupportTinyGarden = llmSupportTinyGarden == true,
-      llmSupportMobileActions = llmSupportMobileActions == true,
       llmSupportThinking = llmSupportThinking == true,
       llmMaxToken = llmMaxToken,
       accelerators = accelerators,

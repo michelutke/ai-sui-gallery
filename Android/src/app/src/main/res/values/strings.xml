@@ -188,11 +188,6 @@
   <string name="set_timer_message" translatable="false">Setting the timer for %1$d seconds.</string>
   <string name="add_calendar_event_message" translatable="false">Adding \"Team meeting (10AM-11AM)\" to your calendar.</string>
   <string name="take_picture_message" translatable="false">Opening the camera app.</string>
-  <string name="mobile_actions_title" translatable="false">Mobile Actions</string>
-  <string name="mobile_actions_description" translatable="false">Control your device with simple commands</string>
-  <string name="mobile_actions_supported_actions" translatable="false">Supported sample actions:</string>
-  <string name="mobile_actions_tab_model_response" translatable="false">Model response</string>
-  <string name="mobile_actions_tab_function_called" translatable="false">Function(s) called</string>
   <string name="view_results" translatable="false">View results</string>
   <string name="view_console_logs" translatable="false">View console logs</string>
   <string name="warming_up" translatable="false">warming up…</string>
@@ -206,26 +201,7 @@
     <item quantity="one">Parameter</item>
     <item quantity="other">Parameters</item>
   </plurals>
-  <string name="prompt_template_label_flash_on_off">Turn flashlight on/off</string>
-  <string name="prompt_template_label_flash_on">Flashlight on</string>
-  <string name="prompt_template_label_flash_off">Flashlight off</string>
-  <string name="prompt_template_label_create_contact">Create contact</string>
-  <string name="prompt_template_label_send_email">Send email</string>
-  <string name="prompt_template_label_create_calendar_event">Create calendar event</string>
-  <string name="prompt_template_label_show_location_on_map">Show location on map</string>
-  <string name="prompt_template_label_open_wifi_settings">Open WIFI settings</string>
 
-  <!-- Strings for MobileActionsChallengeDialog -->
-  <string name="mobile_actions_challenge_title">Mobile Actions Finetune Challenge</string>
-  <string name="mobile_actions_challenge_subtitle">Build it to play it!</string>
-  <string name="mobile_actions_challenge_description">This demo is locked. To unlock the Mobile Actions agent, you need to compile the model yourself using our open-source recipe.</string>
-  <string name="mobile_actions_challenge_instructions_title">Instructions:</string>
-  <string name="mobile_actions_challenge_instruction_1">1. <![CDATA[<b>On your computer</b>]]>, open <![CDATA[<a href="https://ai.google.dev/gemma/docs/mobile-actions">this guide</a>]]></string>
-  <string name="mobile_actions_challenge_instruction_2">2. Follow the instructions to fine tune the model and convert it to .litertlm format.</string>
-  <string name="mobile_actions_challenge_instruction_3">3. Transfer the file to this phone.</string>
-  <string name="mobile_actions_challenge_instruction_4">4. Tap <![CDATA[<b>Load Model</b>]]> below to unlock the demo.</string>
-  <string name="mobile_actions_challenge_email_colab">Email guide to myself</string>
-  <string name="mobile_actions_challenge_load_model">Load Model</string>
 
   <!-- Insurance Card Scanner -->
   <string name="insurance_task_label">Insurance Card Scanner</string>

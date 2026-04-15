@@ -165,11 +165,6 @@
   <string name="set_timer_message">Impostazione del timer su %1$d secondi.</string>
   <string name="add_calendar_event_message">Aggiunta di "Riunione del team (10:00–11:00)" al tuo calendario.</string>
   <string name="take_picture_message">Apertura dell\'app fotocamera.</string>
-  <string name="mobile_actions_title">Azioni mobile</string>
-  <string name="mobile_actions_description">Controlla il tuo dispositivo con comandi semplici</string>
-  <string name="mobile_actions_supported_actions">Azioni di esempio supportate:</string>
-  <string name="mobile_actions_tab_model_response">Risposta del modello</string>
-  <string name="mobile_actions_tab_function_called">Funzione/i chiamata/e</string>
   <string name="view_results">Visualizza risultati</string>
   <string name="warming_up">riscaldamento…</string>
   <string name="warning_no_function_call">Nessuna funzione riconosciuta</string>
@@ -181,26 +176,7 @@
     <item quantity="one">Parametro</item>
     <item quantity="other">Parametri</item>
   </plurals>
-  <string name="prompt_template_label_flash_on_off">Attiva/disattiva torcia</string>
-  <string name="prompt_template_label_flash_on">Torcia accesa</string>
-  <string name="prompt_template_label_flash_off">Torcia spenta</string>
-  <string name="prompt_template_label_create_contact">Crea contatto</string>
-  <string name="prompt_template_label_send_email">Invia e-mail</string>
-  <string name="prompt_template_label_create_calendar_event">Crea evento nel calendario</string>
-  <string name="prompt_template_label_show_location_on_map">Mostra posizione sulla mappa</string>
-  <string name="prompt_template_label_open_wifi_settings">Apri impostazioni Wi-Fi</string>
 
-  <!-- Strings for MobileActionsChallengeDialog -->
-  <string name="mobile_actions_challenge_title">Mobile Actions Finetune Challenge</string>
-  <string name="mobile_actions_challenge_subtitle">Costruiscilo per giocarci!</string>
-  <string name="mobile_actions_challenge_description">Questa demo è bloccata. Per sbloccare l\'agente Mobile Actions, devi compilare il modello tu stesso usando la nostra ricetta open source.</string>
-  <string name="mobile_actions_challenge_instructions_title">Istruzioni:</string>
-  <string name="mobile_actions_challenge_instruction_1">1. <![CDATA[<b>Sul tuo computer</b>]]>, apri <![CDATA[<a href="https://ai.google.dev/gemma/docs/mobile-actions">questa guida</a>]]></string>
-  <string name="mobile_actions_challenge_instruction_2">2. Segui le istruzioni per mettere a punto il modello e convertirlo nel formato .litertlm.</string>
-  <string name="mobile_actions_challenge_instruction_3">3. Trasferisci il file su questo telefono.</string>
-  <string name="mobile_actions_challenge_instruction_4">4. Tocca <![CDATA[<b>Carica modello</b>]]> qui sotto per sbloccare la demo.</string>
-  <string name="mobile_actions_challenge_email_colab">Inviami la guida per e-mail</string>
-  <string name="mobile_actions_challenge_load_model">Carica modello</string>
 
   <!-- Insurance Card Scanner -->
   <string name="insurance_task_label">Scanner tessera assicurativa</string>

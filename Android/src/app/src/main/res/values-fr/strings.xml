@@ -165,11 +165,6 @@
   <string name="set_timer_message">Minuterie réglée sur %1$d secondes.</string>
   <string name="add_calendar_event_message">Ajout de « Réunion d\'équipe (10h–11h) » à votre calendrier.</string>
   <string name="take_picture_message">Ouverture de l\'application appareil photo.</string>
-  <string name="mobile_actions_title">Actions mobiles</string>
-  <string name="mobile_actions_description">Contrôlez votre appareil avec des commandes simples</string>
-  <string name="mobile_actions_supported_actions">Exemples d\'actions prises en charge :</string>
-  <string name="mobile_actions_tab_model_response">Réponse du modèle</string>
-  <string name="mobile_actions_tab_function_called">Fonction(s) appelée(s)</string>
   <string name="view_results">Voir les résultats</string>
   <string name="warming_up">préchauffage…</string>
   <string name="warning_no_function_call">Aucune fonction reconnue</string>
@@ -181,26 +176,7 @@
     <item quantity="one">Paramètre</item>
     <item quantity="other">Paramètres</item>
   </plurals>
-  <string name="prompt_template_label_flash_on_off">Activer/désactiver la lampe de poche</string>
-  <string name="prompt_template_label_flash_on">Lampe de poche allumée</string>
-  <string name="prompt_template_label_flash_off">Lampe de poche éteinte</string>
-  <string name="prompt_template_label_create_contact">Créer un contact</string>
-  <string name="prompt_template_label_send_email">Envoyer un e-mail</string>
-  <string name="prompt_template_label_create_calendar_event">Créer un événement de calendrier</string>
-  <string name="prompt_template_label_show_location_on_map">Afficher l\'emplacement sur la carte</string>
-  <string name="prompt_template_label_open_wifi_settings">Ouvrir les paramètres Wi-Fi</string>
 
-  <!-- Strings for MobileActionsChallengeDialog -->
-  <string name="mobile_actions_challenge_title">Mobile Actions Finetune Challenge</string>
-  <string name="mobile_actions_challenge_subtitle">Construisez-le pour y jouer !</string>
-  <string name="mobile_actions_challenge_description">Cette démo est verrouillée. Pour débloquer l\'agent Mobile Actions, vous devez compiler le modèle vous-même à l\'aide de notre recette open source.</string>
-  <string name="mobile_actions_challenge_instructions_title">Instructions :</string>
-  <string name="mobile_actions_challenge_instruction_1">1. <![CDATA[<b>Sur votre ordinateur</b>]]>, ouvrez <![CDATA[<a href="https://ai.google.dev/gemma/docs/mobile-actions">ce guide</a>]]></string>
-  <string name="mobile_actions_challenge_instruction_2">2. Suivez les instructions pour affiner le modèle et le convertir au format .litertlm.</string>
-  <string name="mobile_actions_challenge_instruction_3">3. Transférez le fichier sur ce téléphone.</string>
-  <string name="mobile_actions_challenge_instruction_4">4. Appuyez sur <![CDATA[<b>Charger le modèle</b>]]> ci-dessous pour débloquer la démo.</string>
-  <string name="mobile_actions_challenge_email_colab">M\'envoyer le guide par e-mail</string>
-  <string name="mobile_actions_challenge_load_model">Charger le modèle</string>
 
   <!-- Insurance Card Scanner -->
   <string name="insurance_task_label">Scanner de carte d\'assurance</string>
