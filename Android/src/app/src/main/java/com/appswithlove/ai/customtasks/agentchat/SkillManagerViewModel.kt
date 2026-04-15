@@ -23,15 +23,20 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.Kitchen
 import androidx.compose.material.icons.outlined.LocalLibrary
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Password
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.ScreenRotation
 import androidx.compose.material.icons.outlined.SentimentVerySatisfied
 import androidx.compose.material.icons.outlined.Tag
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -93,6 +98,36 @@ val TRYOUT_CHIPS: List<SkillTryOutChip> =
       label = "Send Email",
       prompt = "Send email 'Good morning' to abc@example.com. Content: 'Any plans for tonight?'",
       skillName = "send-email",
+    ),
+    SkillTryOutChip(
+      icon = Icons.Outlined.FlashlightOn,
+      label = "Flashlight",
+      prompt = "Turn the flashlight on.",
+      skillName = "flashlight",
+    ),
+    SkillTryOutChip(
+      icon = Icons.Outlined.PersonAdd,
+      label = "Create Contact",
+      prompt = "Create a contact for Jane Doe, phone +41 79 123 45 67, email jane@example.com.",
+      skillName = "create-contact",
+    ),
+    SkillTryOutChip(
+      icon = Icons.Outlined.LocationOn,
+      label = "Show Location",
+      prompt = "Show the Zurich main station on the map.",
+      skillName = "show-location",
+    ),
+    SkillTryOutChip(
+      icon = Icons.Outlined.Wifi,
+      label = "WiFi Settings",
+      prompt = "Open the WiFi settings.",
+      skillName = "wifi-settings",
+    ),
+    SkillTryOutChip(
+      icon = Icons.Outlined.CalendarMonth,
+      label = "Calendar Event",
+      prompt = "Add a calendar event 'Team sync' tomorrow at 10:00.",
+      skillName = "calendar-event",
     ),
     SkillTryOutChip(
       icon = Icons.Outlined.SentimentVerySatisfied,
