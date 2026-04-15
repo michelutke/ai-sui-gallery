@@ -2,20 +2,22 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+This is the **AppsWithLove fork** of `google-ai-edge/gallery`. See [README.md](README.md) for the product-level overview. This file is the engineering reference.
+
 ## Build Commands
 
 All Gradle commands run from `Android/src/`:
 
 ```bash
 ./gradlew assembleDebug       # Build debug APK
-./gradlew assembleRelease     # Build release APK
-./gradlew installDebug        # Build and install debug on device
+./gradlew assembleRelease     # Build release APK (R8-minified, signed)
+./gradlew installDebug        # Build and install debug on connected device
 ./gradlew :app:lint           # Run lint checks
 ./gradlew test                # Run unit tests
-./gradlew :app:test --tests "com.google.ai.edge.gallery.SomeTest"  # Single test
+./gradlew :app:test --tests "com.appswithlove.ai.SomeTest"  # Single test
 ```
 
-CI runs on Ubuntu with Java 21 (`build_android.yaml`).
+CI runs on Ubuntu with Java 21 (`.github/workflows/build_android.yaml`).
 
 ## CI/CD — Updraft Deployment
 
@@ -43,38 +45,79 @@ Triggers on push to `main` (Android paths) or `workflow_dispatch`. PRs only run 
 
 Keystore `.jks` file is stored in 1Password.
 
-## Local Setup
+## Security posture
 
-Before building, configure HuggingFace OAuth (required for model downloads):
+The fork differs from upstream Google on several hardening decisions — don't silently undo these:
 
-1. Create a HuggingFace OAuth app
-2. Set `clientId` and `redirectUri` in `Android/src/app/src/main/java/com/google/ai/edge/gallery/common/ProjectConfig.kt`
-3. Update `manifestPlaceholders["appAuthRedirectScheme"]` in `Android/src/app/build.gradle.kts`
+- **No Firebase.** `firebase-analytics`, `firebase-messaging`, `FirebaseApp.initializeApp`, and all FCM manifest entries are removed. App does not phone home. If you add telemetry, use an AppsWithLove-hosted self-hosted analytics stack, behind an opt-in toggle.
+- **R8 + shrinkResources ON for release.** Release AABs are obfuscated and tree-shaken. Keep rules in `Android/src/app/proguard-rules.pro`. Any new code that uses reflection (Gson deserialization, annotation scanning, JNI callbacks) needs a matching keep rule or it will fail at runtime only in release builds.
+- **`android:allowBackup="false"`** in `AndroidManifest.xml`. No `adb backup` or Google Drive auto-sync of app data.
+- **HF OAuth is not configured.** `ProjectConfig.kt` ships placeholder client ID + redirect URI. This is deliberate — gated model downloads route through the GitHub release mirror instead (see below). No personal token is embedded in the APK.
 
 ## Architecture
 
-Single-module Android app (`Android/src/app/`) targeting Android 12+ (minSdk 31).
+Single-module Android app (`Android/src/app/`) targeting Android 12+ (minSdk 31). Kotlin namespace: `com.appswithlove.ai`.
 
-**Stack:** Kotlin + Jetpack Compose + Hilt + LiteRT LM (on-device LLM inference)
+**Stack:** Kotlin 2.2.0 + Jetpack Compose (BOM 2026.02.00) + Hilt 2.57.2 + LiteRT LM 0.10.0 (on-device LLM inference). AGP 8.9.2.
 
 ### Key Layers
 
 - **`data/`** — Models, repositories, allowlists. `DataStoreRepository` (local prefs via Protobuf), `DownloadRepository` (model download/cache), `Tasks.kt` + `Categories.kt` define available AI tasks.
 - **`runtime/`** — `LlmModelHelper.kt` wraps LiteRT LM inference API.
 - **`ui/`** — Compose screens per feature: `home/`, `llmchat/`, `llmsingleturn/`, `modelmanager/`, `benchmark/`. Shared components in `ui/common/`.
-- **`customtasks/`** — Extensible feature modules using LLM function-calling (`tinygarden/`, `mobileactions/`, `examplecustomtask/`).
+- **`customtasks/`** — Extensible feature modules (`agentchat/`, `aijournal/`, `emoji/`, `examplecustomtask/`, `insurancecard/`, `tinygarden/`). Most use LLM function-calling via `@Tool` / `@ToolParam`.
 - **`di/`** — Hilt modules.
 - **`worker/`** — WorkManager background tasks.
 
 ### Navigation
 
-Single-activity (`MainActivity.kt`) with Compose Navigation; graph defined in `ui/navigation/GalleryNavGraph.kt`.
+Single-activity (`MainActivity.kt`) with Compose Navigation 3; graph defined in `ui/navigation/GalleryNavGraph.kt`.
 
 ### Model Allowlist System
 
-`model_allowlist.json` (root) is the source allowlist. `model_allowlists/{version}.json` (e.g. `1_0_0.json`) are versioned copies the app fetches from GitHub at startup. The app tries: GitHub versioned URL → disk cache → bundled assets fallback. When updating models, update both `model_allowlist.json` and the corresponding versioned file, plus `Android/src/app/src/main/assets/model_allowlist.json`.
+Three copies of `model_allowlist.json` are kept in sync:
 
-Current models: Gemma-4-E2B, Gemma-4-E4B, Qwen2.5-1.5B, Qwen3.5-0.8B, TinyGarden-270M, MobileActions-270M.
+1. **`model_allowlist.json`** (repo root) — source of truth
+2. **`model_allowlists/<version>.json`** (e.g. `1_0_11.json`) — version-pinned copy the app fetches from `https://raw.githubusercontent.com/.../<version>.json` at startup based on the app's `versionName`
+3. **`Android/src/app/src/main/assets/model_allowlist.json`** — bundled fallback when the network fetch fails
+
+Load order at runtime: GitHub versioned URL → disk cache → bundled asset. When updating models, update all three. When bumping `versionName` add a new `model_allowlists/<new-version>.json`.
+
+Current models (post-MobileActions-task removal): Gemma-4-E2B, Gemma-4-E4B, Qwen2.5-1.5B, Qwen3.5-0.8B, TinyGarden-270M.
+
+#### GitHub release mirror for gated models
+
+Some upstream HF models are gated (return 401 without an authed session that has accepted the upstream license). We mirror those to GitHub releases on `michelutke/ai-sui-gallery` and override the download URL in the allowlist:
+
+```json
+{
+  "name": "TinyGarden-270M",
+  "modelId": "litert-community/functiongemma-270m-ft-tiny-garden",
+  "modelFile": "tiny_garden_q8_ekv1024.litertlm",
+  "commitHash": "c205853ff82da86141a1105faa2344a8b176dfe7",
+  "url": "https://github.com/michelutke/ai-sui-gallery/releases/download/models-v1/tiny_garden_q8_ekv1024.litertlm",
+  ...
+}
+```
+
+`AllowedModel.toModel()` in `data/ModelAllowlist.kt` uses `url` verbatim when present, bypassing the `huggingface.co/{modelId}/resolve/{commit}/{file}` construction.
+
+**Adding a mirrored model:**
+
+1. Download the `.litertlm` from HF with an authed token that has accepted the license. Verify SHA-256 and file size against HF `content-length`.
+2. `gh release create models-vN --repo michelutke/ai-sui-gallery --title "Models mirror vN" --notes "..."` — include Gemma Terms pointer in notes for Gemma-derived models.
+3. `gh release upload models-vN <file> --repo michelutke/ai-sui-gallery`.
+4. Add `"url": "https://github.com/michelutke/ai-sui-gallery/releases/download/models-vN/<file>"` to the model entry in all three allowlist copies.
+5. Clear app data (`adb shell pm clear com.appswithlove.ai`), rebuild, reinstall, confirm tokenless download works end-to-end.
+
+### Agent Chat (`customtasks/agentchat/`)
+
+Skill-based LLM agent. Skills are JS-based bundles under `Android/src/app/src/main/assets/skills/<skill-name>/` containing a `SKILL.md` (name + description + instructions for the LLM) and `scripts/index.html` (entry point exposing `window['ai_edge_gallery_get_result']`).
+
+- `AgentTools.kt` exposes three `@Tool` methods to the LLM: `loadSkill`, `runJs`, `runIntent`. The LLM reads a skill's markdown via `loadSkill`, then calls `runJs` or `runIntent` to execute.
+- `IntentHandler.kt` implements the native bridge for `runIntent` — supports flashlight, contacts, email, SMS, map, WiFi, calendar.
+- `SkillManagerViewModel.kt` holds the `TRYOUT_CHIPS` list (horizontal chip row in the UI) — add a chip here to surface a new built-in skill prominently.
+- Skills under `assets/skills/` auto-register as built-in Skills on first launch.
 
 ### Insurance Card Scanner (`customtasks/insurancecard/`)
 
@@ -107,14 +150,18 @@ CameraX capture → ML Kit OCR (with `rotationDegrees` for correct orientation) 
 
 ### Custom Task Extension Pattern
 
-To add a new AI feature: define `ActionType` enum + `Action` class, annotate functions with `@Tool`/`@ToolParam`, implement logic in a ViewModel. See `Function_Calling_Guide.md` and `customtasks/examplecustomtask/` for reference.
+To add a new AI feature: define `ActionType` enum + `Action` class, annotate functions with `@Tool`/`@ToolParam`, implement logic in a ViewModel. Register via Hilt `@IntoSet` (see `AiJournalModule.kt` or `EmojiModule.kt`). See `Function_Calling_Guide.md` and `customtasks/examplecustomtask/` for reference.
+
+When adding `@Tool`-annotated classes: also add a `-keep class com.appswithlove.ai.customtasks.<newtask>.YourTools { *; }` to `proguard-rules.pro`, otherwise function calling silently fails in release builds due to R8 renaming.
 
 ### Proto Files
 
-`app/src/main/proto/settings.proto` and `benchmark.proto` generate typed data classes via the Protobuf Lite plugin.
+`app/src/main/proto/settings.proto`, `benchmark.proto`, `skill.proto` generate typed data classes via the Protobuf Lite plugin. Package is `com.appswithlove.ai.proto`.
 
 ## Dependencies
 
 Managed via version catalog at `Android/src/gradle/libs.versions.toml`.
 
-Key versions: AGP 8.8.2, Kotlin 2.2.0, Compose BOM 2026.02.00, Hilt 2.57.2, LiteRT LM 0.10.0.
+Key versions: AGP 8.9.2, Kotlin 2.2.0, Compose BOM 2026.02.00, Hilt 2.57.2, LiteRT LM 0.10.0, Room 2.7.1, Moshi 1.15.2.
+
+`guava` and `androidx.documentfile` are explicit deps because Firebase used to pull them transitively; removing Firebase would otherwise break `TinyGardenScreen.kt` (uses `com.google.common.io.BaseEncoding`) and `SkillManagerViewModel.kt` (uses `DocumentFile` for directory import).

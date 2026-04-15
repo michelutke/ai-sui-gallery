@@ -1,87 +1,115 @@
-# Google AI Edge Gallery ✨
+# AppsWithLove AI Gallery
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/google-ai-edge/gallery)](https://github.com/google-ai-edge/gallery/releases)
 
-**Explore, Experience, and Evaluate the Future of On-Device Generative AI with Google AI Edge.**
+On-device generative AI showcase app by [AppsWithLove](https://appswithlove.com). Forked from [google-ai-edge/gallery](https://github.com/google-ai-edge/gallery) and adapted for AppsWithLove demos, Swiss use cases, and internal distribution via Updraft.
 
-AI Edge Gallery is the premier destination for running the world's most powerful open-source Large Language Models (LLMs) on your mobile device. Experience high-performance Generative AI directly on your hardware—fully offline, private, and lightning-fast.
+All inference runs locally via [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM). Nothing leaves the device.
 
-**Now Featuring: Gemma 4**
+## App identity
 
-The latest version brings official support for the newly released Gemma 4 family. As the centerpiece of this release, Gemma 4 allows you to test the cutting edge of on-device AI. Experience advanced reasoning, logic, and creative capabilities without ever sending your data to a server.
+| | |
+|---|---|
+| Application ID | `com.appswithlove.ai` |
+| Kotlin namespace | `com.appswithlove.ai` |
+| Distribution | [Updraft](https://app.getupdraft.com) (internal), push to `main` triggers build+deploy |
+| Repo | `michelutke/ai-sui-gallery` (this repo) |
+| Upstream | `google-ai-edge/gallery` (ref `upstream`) |
 
+## What's different vs. upstream
 
-| **Install the app today from Google Play** | **Install the app today from App Store** |
-| :--- | :--- |
-| <a href='https://play.google.com/store/apps/details?id=com.google.ai.edge.gallery'><img alt='Get it on Google Play' height="120" src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'/></a> | <a href="https://apps.apple.com/us/app/google-ai-edge-gallery/id6749645337?itscg=30200&itsct=apps_box_badge&mttnsubad=6749645337" style="display: inline-block;"> <img src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/en-us?releaseDate=1771977600" alt="Download on the App Store" style="width: 246px; height: 90px; vertical-align: middle; object-fit: contain;" /></a> |
+### Security hardening
 
-For users without Google Play access, install the apk from the [**latest release**](https://github.com/google-ai-edge/gallery/releases/latest/)
+- **Firebase Analytics + FCM removed**: app does not phone home. No `google-services.json`, no `FirebaseApp.initializeApp`, no measurement services or GCM permissions.
+- **Backup disabled**: `android:allowBackup="false"`. DataStore prefs, cached models, and auth tokens can't leak via `adb backup` or Google Drive auto-backup.
+- **R8 + resource shrinking enabled** for release builds. Keep rules in `Android/src/app/proguard-rules.pro` cover LiteRT LM, `@Tool`/`@ToolParam` function-calling, Gson reflection, Room, AppAuth, WorkManager.
 
+### Distribution
 
-## App Preview
+- No Play Store / App Store. Releases ship to Updraft via `.github/workflows/build_android.yaml`.
+- Release signing keys live in GitHub Secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`). Keystore backup in 1Password.
 
-<img width="480" alt="01" src="https://github.com/user-attachments/assets/a809ad78-aef4-4169-91ee-de7213cbb3bd" />
-<img width="480" alt="02" src="https://github.com/user-attachments/assets/1effd10d-f45a-4f7b-9435-f50f1bdd36b6" />
-<img width="480" alt="03" src="https://github.com/user-attachments/assets/e5089e41-2c18-4fbe-9011-ebe9e5a02044" />
-<img width="480" alt="04" src="https://github.com/user-attachments/assets/0f39d3ed-7403-4606-a7c6-b2c7e51ba6c1" />
-<img width="480" alt="05" src="https://github.com/user-attachments/assets/8c229e96-b598-4735-9f60-e96907e1d5d5" />
-<img width="480" alt="06" src="https://github.com/user-attachments/assets/ac9fb77b-81de-4197-9ed3-f6fe58290b3e" />
-<img width="480" alt="07" src="https://github.com/user-attachments/assets/bc86ba07-2eaf-49b1-980f-8a87a85c596f" />
-<img width="480" alt="08" src="https://github.com/user-attachments/assets/061564ed-030f-4630-810b-13a7863fce4c" />
+### Custom tasks added
 
-## ✨ Core Features
+Located under `Android/src/app/src/main/java/com/appswithlove/ai/customtasks/`:
 
-* **Agent Skills**: Transform your LLM from a conversationalist into a proactive assistant. Use the Agent Skills tile to augment model capabilities with tools like Wikipedia for fact-grounding, interactive maps, and rich visual summary cards. You can even load modular skills from a URL or browse community contributions on GitHub Discussions.
+| Task | Path | What it does |
+|---|---|---|
+| Agent Chat (Skills) | `agentchat/` | LLM + pluggable JS-based skill bundles. 13 built-in skills, including 6 device actions (flashlight, contact, email, map, WiFi, calendar) |
+| AI Journal | `aijournal/` | Private on-device journal with AI structuring + natural language recall |
+| Emoji Generator | `emoji/` | Real-time emoji generation from text (debounced, few-shot) |
+| Insurance Card Scanner | `insurancecard/` | CameraX + ML Kit OCR + LLM (or regex) extraction of Swiss KVG cards |
+| Tiny Garden | `tinygarden/` | Function-calling mini-game on a 3x3 grid (uses TinyGarden-270M) |
 
-* **AI Chat with Thinking Mode**: Engage in fluid, multi-turn conversations and toggle the new Thinking Mode to peek "under the hood." This feature allows you to see the model’s step-by-step reasoning process, which is perfect for understanding complex problem-solving. Note: Thinking Mode currently works with supported models, starting with the Gemma 4 family.
+The original `mobileactions/` task was removed — its 6 device actions are now exposed as Agent Chat skills via the existing `runIntent` tool. See the chips row in Agent Chat for one-tap prompts.
 
-* **Ask Image**: Use multimodal power to identify objects, solve visual puzzles, or get detailed descriptions using your device’s camera or photo gallery.
+## Model allowlist + GitHub release mirror
 
-* **Audio Scribe**: Transcribe and translate voice recordings into text in real-time using high-efficiency on-device language models.
+The allowlist is stored in three places (kept in sync):
 
-* **Prompt Lab**: A dedicated workspace to test different prompts and single-turn use cases with granular control over model parameters like temperature and top-k.
+- `model_allowlist.json` — repo root (source of truth)
+- `Android/src/app/src/main/assets/model_allowlist.json` — bundled fallback if network load fails
+- `model_allowlists/<version>.json` — version-pinned copy the app fetches at startup; current version is `1_0_11.json`
 
-* **Mobile Actions**: Unlock offline device controls and automated tasks powered entirely by a finetune of FuntionGemma 270m.
+### Why we mirror some models
 
-* **Tiny Garden**: A fun, experimental mini-game that uses natural language to plant and harvest a virtual garden using a finetune of FunctionGemma 270m.
+Some upstream models on HuggingFace are **gated** — they return HTTP 401 to any anonymous request because they require a logged-in HF user that has accepted the upstream license (typically Gemma).
 
-* **Model Management & Benchmark**: Gallery is a flexible sandbox for a wide variety of open-source models. Easily download models from the list or load your own custom models. Manage your model library effortlessly and run benchmark tests to understand exactly how each model performs on your specific hardware.
+`TinyGarden-270M` is the canonical example. To make the app work without any HF credentials, we mirror the gated `.litertlm` files to a **GitHub release** on this repo and add a `"url"` override to the allowlist entry. `AllowedModel.toModel()` in `Android/src/app/src/main/java/com/appswithlove/ai/data/ModelAllowlist.kt` uses that `url` verbatim when present, bypassing the usual `huggingface.co/{modelId}/resolve/{commit}/{file}` URL construction.
 
-* **100% On-Device Privacy**: All model inferences happen directly on your device hardware. No internet is required, ensuring total privacy for your prompts, images, and sensitive data.
+### Where the mirrored files live
 
-## 🏁 Get Started in Minutes!
+[`michelutke/ai-sui-gallery` GitHub Releases](https://github.com/michelutke/ai-sui-gallery/releases) — each release tag holds one batch of model files as release assets.
 
-1. **Check OS Requirement**: Android 12 and up, and iOS 17 and up.
-2.  **Download the App:**
-    - Install the app from [Google Play](https://play.google.com/store/apps/details?id=com.google.ai.edge.gallery) or [App Store](https://apps.apple.com/us/app/google-ai-edge-gallery/id6749645337).
-    - For users without Google Play access: install the apk from the [**latest release**](https://github.com/google-ai-edge/gallery/releases/latest/)
-3.  **Install & Explore:** For detailed installation instructions (including for corporate devices) and a full user guide, head over to our [**Project Wiki**](https://github.com/google-ai-edge/gallery/wiki)!
+| Release | Files | Reason for mirroring |
+|---|---|---|
+| [`models-v1`](https://github.com/michelutke/ai-sui-gallery/releases/tag/models-v1) | `tiny_garden_q8_ekv1024.litertlm` (288 MB, sha256 `38067934eac6845417a456602da8714e1c0a5ae28970140d3b5f6abaf48e3141`) | Upstream repo on HF is gated; returns 401 without auth |
 
-## 🛠️ Technology Highlights
+### Adding or updating a mirrored model
 
-*   **Google AI Edge:** Core APIs and tools for on-device ML.
-*   **LiteRT:** Lightweight runtime for optimized model execution.
-*   **Hugging Face Integration:** For model discovery and download.
+1. Verify the model is worth mirroring — ungated HF models should stay on HF (faster CDN, better for updates).
+2. Download the `.litertlm` file from HF with an authed token that has accepted the model's license.
+3. Verify size + SHA-256 match the upstream `huggingface.co/.../resolve/<commit>/<file>` response.
+4. Cut a new release on this repo: `gh release create models-vN --repo michelutke/ai-sui-gallery --title "Models mirror vN" ...`. Include the Gemma Terms notice in the body when the model is Gemma-derived.
+5. `gh release upload models-vN <file> --repo michelutke/ai-sui-gallery`.
+6. Edit all three `model_allowlist.json` copies: add `"url": "https://github.com/michelutke/ai-sui-gallery/releases/download/models-vN/<file>"` to the model entry. When bumping the app `versionName`, add a new `model_allowlists/<version>.json` that matches.
+7. Build, install fresh (clear app data), confirm the download works without a token.
 
-## ⌨️ Development
+### Gemma license
 
-Check out the [development notes](DEVELOPMENT.md) for instructions about how to build the app locally.
+All Gemma-derived models distributed through this mirror are governed by the [Gemma Terms of Use](https://ai.google.dev/gemma/terms) and the [Gemma Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy). The app presents the Gemma terms dialog on first launch (`GemmaTermsOfUseDialog.kt`).
 
-## 🤝 Feedback
+## Development
 
-This is an **experimental Beta release**, and your input is crucial!
+See [DEVELOPMENT.md](DEVELOPMENT.md) for upstream-inherited build instructions. AppsWithLove-specific notes:
 
-*   🐞 **Found a bug?** [Report it here!](https://github.com/google-ai-edge/gallery/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%5D)
-*   💡 **Have an idea?** [Suggest a feature!](https://github.com/google-ai-edge/gallery/issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFEATURE%5D)
+### HuggingFace auth (optional)
 
-## 📄 License
+The app's OAuth flow for HF-gated downloads is **not configured** — `ProjectConfig.kt` ships placeholder client ID + redirect URI. Currently this is fine because:
 
-Licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
+- All public HF models in the allowlist download without auth.
+- Any gated model is mirrored to GitHub releases (see above).
 
-## 🔗 Useful Links
+If upstream OAuth needs to be re-enabled, register a HuggingFace OAuth app under an AppsWithLove account and fill in `ProjectConfig.kt` + `build.gradle.kts` → `manifestPlaceholders["appAuthRedirectScheme"]`.
 
-*   [**Project Wiki (Detailed Guides)**](https://github.com/google-ai-edge/gallery/wiki)
-*   [Hugging Face LiteRT Community](https://huggingface.co/litert-community)
-*   [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM)
-*   [Google AI Edge Documentation](https://ai.google.dev/edge)
+### Build + install
+
+```bash
+cd Android/src
+./gradlew installDebug       # debug build on connected device
+./gradlew bundleRelease      # signed AAB for Updraft (needs keystore env vars)
+./gradlew :app:lint          # lint
+./gradlew test               # unit tests
+```
+
+## Further reading
+
+- [CLAUDE.md](CLAUDE.md) — working conventions + architecture map for contributors using Claude Code
+- [DEVELOPMENT.md](DEVELOPMENT.md) — upstream build setup
+- [Function_Calling_Guide.md](Function_Calling_Guide.md) — how `@Tool` / `@ToolParam` are used to give models tool access
+- [CHANGELOG.md](CHANGELOG.md) — release notes for Updraft builds
+- [CONTRIBUTING.md](CONTRIBUTING.md) — upstream contribution guidelines (mostly inherited)
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE). Retains all upstream Google LLC copyright notices. Gemma-derived model redistributions additionally bound by the [Gemma Terms](https://ai.google.dev/gemma/terms).

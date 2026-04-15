@@ -79,6 +79,7 @@
       "modelId": "litert-community/functiongemma-270m-ft-tiny-garden",
       "modelFile": "tiny_garden_q8_ekv1024.litertlm",
       "commitHash": "c205853ff82da86141a1105faa2344a8b176dfe7",
+      "url": "https://github.com/michelutke/ai-sui-gallery/releases/download/models-v1/tiny_garden_q8_ekv1024.litertlm",
       "description": "Fine-tuned Function Gemma 270M model for Tiny Garden.",
       "sizeInBytes": 288964608,
       "minDeviceMemoryInGb": 6,
