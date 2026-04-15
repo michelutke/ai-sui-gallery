@@ -249,4 +249,18 @@
   <string name="emoji_input_hint">Inserisci testo per ottenere emoji</string>
   <string name="emoji_loading">Generazione in corso…</string>
 
+  <!-- Notes -->
+  <string name="notes_task_label">Note</string>
+  <string name="notes_add">Aggiungi nota</string>
+  <string name="notes_empty_title">Nessuna nota</string>
+  <string name="notes_empty_hint">Tocca + per creare la tua prima nota</string>
+  <string name="notes_editor_new">Nuova nota</string>
+  <string name="notes_editor_edit">Modifica nota</string>
+  <string name="notes_editor_title_label">Titolo (facoltativo)</string>
+  <string name="notes_editor_content_label">Contenuto</string>
+  <string name="notes_editor_save">Salva</string>
+  <string name="notes_editor_cancel">Annulla</string>
+  <string name="notes_snackbar_deleted">Nota eliminata</string>
+  <string name="notes_snackbar_undo">Annulla</string>
+
 </resources>
