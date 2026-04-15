@@ -17,17 +17,26 @@
 package com.appswithlove.ai
 
 import android.app.Application
+import androidx.appfunctions.service.AppFunctionConfiguration
+import com.appswithlove.ai.customtasks.aijournal.worker.JournalSummarizationWorker
+import com.appswithlove.ai.customtasks.notes.NotesAppFunction
 import com.appswithlove.ai.data.DataStoreRepository
 import com.appswithlove.ai.ui.theme.LocaleSettings
 import com.appswithlove.ai.ui.theme.ThemeSettings
-import com.appswithlove.ai.customtasks.aijournal.worker.JournalSummarizationWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import javax.inject.Provider
 
 @HiltAndroidApp
-class GalleryApplication : Application() {
+class GalleryApplication : Application(), AppFunctionConfiguration.Provider {
 
   @Inject lateinit var dataStoreRepository: DataStoreRepository
+  @Inject lateinit var notesAppFunction: Provider<NotesAppFunction>
+
+  override val appFunctionConfiguration: AppFunctionConfiguration
+    get() = AppFunctionConfiguration.Builder()
+      .addEnclosingClassFactory(NotesAppFunction::class.java) { notesAppFunction.get() }
+      .build()
 
   override fun onCreate() {
     super.onCreate()

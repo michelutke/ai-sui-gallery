@@ -65,6 +65,15 @@
 -keep class com.appswithlove.ai.customtasks.aijournal.AiJournalTools { *; }
 -keep class com.appswithlove.ai.customtasks.agentchat.AgentTools { *; }
 
+# --- Android App Functions ---
+# KSP-generated bindings reflect on these; R8 renames would silently break voice invocation.
+-keep class com.appswithlove.ai.customtasks.notes.NotesAppFunction { *; }
+-keep class com.appswithlove.ai.customtasks.notes.NoteDto { *; }
+-keepclassmembers class com.appswithlove.ai.customtasks.notes.** {
+    *** new(...);
+    public static final ** Companion;
+}
+
 # --- AppAuth (OAuth) ---
 -keep class net.openid.appauth.** { *; }
 -dontwarn net.openid.appauth.**

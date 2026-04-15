@@ -26,7 +26,6 @@ plugins {
   alias(libs.plugins.hilt.application)
   alias(libs.plugins.oss.licenses)
   alias(libs.plugins.ksp)
-  kotlin("kapt")
 }
 
 val localProperties = Properties()
@@ -138,8 +137,11 @@ dependencies {
   implementation(libs.room.ktx)
   implementation(libs.androidx.documentfile)
   implementation(libs.guava)
+  implementation(libs.androidx.appfunctions)
+  implementation(libs.androidx.appfunctions.service)
+  ksp(libs.androidx.appfunctions.compiler)
   ksp(libs.room.compiler)
-  kapt(libs.hilt.android.compiler)
+  ksp(libs.hilt.android.compiler)
   testImplementation(libs.junit)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
@@ -154,4 +156,20 @@ dependencies {
 protobuf {
   protoc { artifact = "com.google.protobuf:protoc:4.26.1" }
   generateProtoTasks { all().forEach { it.plugins { create("java") { option("lite") } } } }
+}
+
+ksp {
+  arg("appfunctions:aggregateAppFunctions", "true")
+  arg("appfunctions:generateMetadataFromSchema", "false")
+}
+
+// AppFunctions compiler generates `app_functions*.xml` into assets; ensure KSP runs before asset merge.
+tasks.configureEach {
+  if (!name.startsWith("merge") || !name.endsWith("Assets")) return@configureEach
+  if (name.contains("ArtProfile")) return@configureEach
+  val variant = name.removePrefix("merge").removeSuffix("Assets")
+  val kspTask = "ksp${variant}Kotlin"
+  if (tasks.names.contains(kspTask)) {
+    dependsOn(kspTask)
+  }
 }
