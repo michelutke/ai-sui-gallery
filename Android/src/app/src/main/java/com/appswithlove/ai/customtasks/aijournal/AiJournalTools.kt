@@ -65,14 +65,14 @@ class AiJournalTools(
     }
   }
 
-  @Tool(description = "Save a journal entry when the user shares experiences, stories, reflections, or events from their life. Extract structured data from what they said. ALL parameters are required — pass empty string when not mentioned by user.")
+  @Tool(description = "Save a journal entry when the user shares experiences, stories, reflections, or events from their life. Only `summary` is required. Omit any other parameter you cannot infer.")
   fun saveJournalEntry(
     @ToolParam(description = "Brief one-line summary of the entry") summary: String,
-    @ToolParam(description = "Comma-separated people names, or empty string if none mentioned") people: String,
-    @ToolParam(description = "Comma-separated activities, or empty string if none mentioned") activities: String,
-    @ToolParam(description = "User mood in one word, or empty string if unclear") mood: String,
-    @ToolParam(description = "Comma-separated locations, or empty string if none mentioned") locations: String,
-    @ToolParam(description = "Comma-separated notable events, or empty string if none") events: String,
+    @ToolParam(description = "Comma-separated people names mentioned by the user") people: String = "",
+    @ToolParam(description = "Comma-separated activities the user did") activities: String = "",
+    @ToolParam(description = "User mood in one word") mood: String = "",
+    @ToolParam(description = "Comma-separated locations") locations: String = "",
+    @ToolParam(description = "Comma-separated notable events") events: String = "",
   ): Map<String, String> {
     return runBlocking(Dispatchers.IO) {
       val entryId = journalDao.insertEntry(
