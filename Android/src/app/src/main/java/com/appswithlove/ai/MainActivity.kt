@@ -47,7 +47,9 @@ import androidx.core.animation.doOnEnd
 import androidx.core.os.bundleOf
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import android.content.Intent
 import com.appswithlove.ai.ui.modelmanager.ModelManagerViewModel
+import com.appswithlove.ai.ui.navigation.DeepLinkBus
 import com.appswithlove.ai.ui.theme.GalleryTheme
 import com.google.ai.edge.litertlm.ExperimentalApi
 import com.google.ai.edge.litertlm.ExperimentalFlags
@@ -64,6 +66,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    consumeDeepLink(intent)
 
     fun setContent() {
       if (contentSet) {
@@ -159,6 +162,17 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+    consumeDeepLink(intent)
+  }
+
+  private fun consumeDeepLink(intent: Intent?) {
+    val taskId = intent?.getStringExtra(DeepLinkBus.EXTRA_OPEN_TASK_ID) ?: return
+    DeepLinkBus.pendingTaskId.value = taskId
   }
 
   companion object {

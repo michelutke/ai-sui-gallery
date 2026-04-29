@@ -17,7 +17,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal", "notes"],
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal"],
       "bestForTaskTypes": ["llm_chat", "llm_ask_image", "llm_ask_audio", "ai_journal"]
     },
     {
@@ -37,7 +37,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal", "notes"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_ask_audio", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal"]
     },
     {
       "name": "Qwen2.5-1.5B-Instruct",
@@ -54,7 +54,7 @@
         "maxTokens": 4096,
         "accelerators": "gpu,cpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal", "notes"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal"]
     },
     {
       "name": "Qwen3.5-0.8B",
@@ -72,7 +72,7 @@
         "maxTokens": 4096,
         "accelerators": "cpu,gpu"
       },
-      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal", "notes"]
+      "taskTypes": ["llm_chat", "llm_prompt_lab", "llm_ask_image", "llm_agent_chat", "emoji_generator", "insurance_card_scan", "ai_journal"]
     },
     {
       "name": "TinyGarden-270M",

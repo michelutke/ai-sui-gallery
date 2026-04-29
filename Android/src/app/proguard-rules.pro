@@ -67,9 +67,15 @@
 
 # --- Android App Functions ---
 # KSP-generated bindings reflect on these; R8 renames would silently break voice invocation.
--keep class com.appswithlove.ai.customtasks.notes.NotesAppFunction { *; }
--keep class com.appswithlove.ai.customtasks.notes.NoteDto { *; }
--keepclassmembers class com.appswithlove.ai.customtasks.notes.** {
+-keep class com.appswithlove.ai.customtasks.emoji.EmojiAppFunction { *; }
+-keep class com.appswithlove.ai.customtasks.emoji.EmojiResult { *; }
+-keep class com.appswithlove.ai.customtasks.insurancecard.InsuranceCardAppFunction { *; }
+-keep class com.appswithlove.ai.customtasks.insurancecard.ScannerLaunchResult { *; }
+-keepclassmembers class com.appswithlove.ai.customtasks.emoji.** {
+    *** new(...);
+    public static final ** Companion;
+}
+-keepclassmembers class com.appswithlove.ai.customtasks.insurancecard.** {
     *** new(...);
     public static final ** Companion;
 }

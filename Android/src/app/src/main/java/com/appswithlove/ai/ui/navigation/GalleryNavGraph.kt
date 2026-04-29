@@ -105,6 +105,19 @@ fun GalleryNavHost(
   val lifecycleOwner = LocalLifecycleOwner.current
   val backStack = rememberNavBackStack(HomeRoute)
   var lastNavigatedModelName = remember { "" }
+  val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
+  val pendingDeepLinkTaskId by DeepLinkBus.pendingTaskId.collectAsState()
+
+  // Handle AppFunction-originated deep links: push ModelListRoute for the requested task once
+  // the allowlist has loaded so tasks are populated.
+  LaunchedEffect(pendingDeepLinkTaskId, modelManagerUiState.tasks) {
+    val taskId = pendingDeepLinkTaskId ?: return@LaunchedEffect
+    val task = modelManagerUiState.tasks.find { it.id == taskId } ?: return@LaunchedEffect
+    if (backStack.lastOrNull() !is ModelListRoute || (backStack.lastOrNull() as? ModelListRoute)?.taskId != taskId) {
+      backStack.add(ModelListRoute(taskId = task.id))
+    }
+    DeepLinkBus.consume()
+  }
 
   // Track whether app is in foreground.
   DisposableEffect(lifecycleOwner) {

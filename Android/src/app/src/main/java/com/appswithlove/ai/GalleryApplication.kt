@@ -19,7 +19,8 @@ package com.appswithlove.ai
 import android.app.Application
 import androidx.appfunctions.service.AppFunctionConfiguration
 import com.appswithlove.ai.customtasks.aijournal.worker.JournalSummarizationWorker
-import com.appswithlove.ai.customtasks.notes.NotesAppFunction
+import com.appswithlove.ai.customtasks.emoji.EmojiAppFunction
+import com.appswithlove.ai.customtasks.insurancecard.InsuranceCardAppFunction
 import com.appswithlove.ai.data.DataStoreRepository
 import com.appswithlove.ai.ui.theme.LocaleSettings
 import com.appswithlove.ai.ui.theme.ThemeSettings
@@ -31,11 +32,13 @@ import javax.inject.Provider
 class GalleryApplication : Application(), AppFunctionConfiguration.Provider {
 
   @Inject lateinit var dataStoreRepository: DataStoreRepository
-  @Inject lateinit var notesAppFunction: Provider<NotesAppFunction>
+  @Inject lateinit var emojiAppFunction: Provider<EmojiAppFunction>
+  @Inject lateinit var insuranceCardAppFunction: Provider<InsuranceCardAppFunction>
 
   override val appFunctionConfiguration: AppFunctionConfiguration
     get() = AppFunctionConfiguration.Builder()
-      .addEnclosingClassFactory(NotesAppFunction::class.java) { notesAppFunction.get() }
+      .addEnclosingClassFactory(EmojiAppFunction::class.java) { emojiAppFunction.get() }
+      .addEnclosingClassFactory(InsuranceCardAppFunction::class.java) { insuranceCardAppFunction.get() }
       .build()
 
   override fun onCreate() {

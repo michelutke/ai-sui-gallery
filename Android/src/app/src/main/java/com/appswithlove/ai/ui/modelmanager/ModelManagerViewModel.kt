@@ -189,6 +189,7 @@ constructor(
   val dataStoreRepository: DataStoreRepository,
   private val lifecycleProvider: AppLifecycleProvider,
   private val customTasks: Set<@JvmSuppressWildcards CustomTask>,
+  private val loadedModelRegistry: com.appswithlove.ai.runtime.LoadedModelRegistry,
   @ApplicationContext private val context: Context,
 ) : ViewModel() {
   private val externalFilesDir = context.getExternalFilesDir(null)
@@ -378,6 +379,7 @@ constructor(
         model.initializing = false
         if (model.instance != null) {
           Log.d(TAG, "Model '${model.name}' initialized successfully")
+          loadedModelRegistry.onInitialized(model)
           updateModelInitializationStatus(
             model = model,
             status = ModelInitializationStatusType.INITIALIZED,
@@ -425,6 +427,7 @@ constructor(
       model.cleanUpAfterInit = false
       Log.d(TAG, "Cleaning up model '${model.name}'...")
       val onDoneFn: () -> Unit = {
+        loadedModelRegistry.onCleanedUp(model)
         model.instance = null
         model.initializing = false
         updateModelInitializationStatus(

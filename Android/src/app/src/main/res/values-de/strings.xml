@@ -249,18 +249,4 @@
   <string name="emoji_input_hint">Text eingeben, um Emoji zu erhalten</string>
   <string name="emoji_loading">Wird generiert…</string>
 
-  <!-- Notes -->
-  <string name="notes_task_label">Notizen</string>
-  <string name="notes_add">Notiz hinzufügen</string>
-  <string name="notes_empty_title">Noch keine Notizen</string>
-  <string name="notes_empty_hint">Auf + tippen, um die erste Notiz zu erstellen</string>
-  <string name="notes_editor_new">Neue Notiz</string>
-  <string name="notes_editor_edit">Notiz bearbeiten</string>
-  <string name="notes_editor_title_label">Titel (optional)</string>
-  <string name="notes_editor_content_label">Inhalt</string>
-  <string name="notes_editor_save">Speichern</string>
-  <string name="notes_editor_cancel">Abbrechen</string>
-  <string name="notes_snackbar_deleted">Notiz gelöscht</string>
-  <string name="notes_snackbar_undo">Rückgängig</string>
-
 </resources>

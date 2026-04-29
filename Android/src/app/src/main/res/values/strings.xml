@@ -404,18 +404,4 @@
   <string name="emoji_input_hint">Enter text to get emoji</string>
   <string name="emoji_loading">Generating…</string>
 
-  <!-- Notes -->
-  <string name="notes_task_label">Notes</string>
-  <string name="notes_add">Add note</string>
-  <string name="notes_empty_title">No notes yet</string>
-  <string name="notes_empty_hint">Tap + to add your first note</string>
-  <string name="notes_editor_new">New note</string>
-  <string name="notes_editor_edit">Edit note</string>
-  <string name="notes_editor_title_label">Title (optional)</string>
-  <string name="notes_editor_content_label">Content</string>
-  <string name="notes_editor_save">Save</string>
-  <string name="notes_editor_cancel">Cancel</string>
-  <string name="notes_snackbar_deleted">Note deleted</string>
-  <string name="notes_snackbar_undo">Undo</string>
-
 </resources>
