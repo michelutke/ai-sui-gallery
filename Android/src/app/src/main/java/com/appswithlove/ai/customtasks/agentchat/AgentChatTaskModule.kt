@@ -26,6 +26,7 @@ import com.appswithlove.ai.data.Category
 import com.appswithlove.ai.data.Model
 import com.appswithlove.ai.data.Task
 import com.appswithlove.ai.ui.llmchat.LlmChatModelHelper
+import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.tool
 import dagger.Module
 import dagger.Provides
@@ -75,6 +76,7 @@ class AgentChatTask @Inject constructor() : CustomTask {
     context: Context,
     coroutineScope: CoroutineScope,
     model: Model,
+    @Suppress("UNUSED_PARAMETER") systemInstruction: Contents?,
     onDone: (String) -> Unit,
   ) {
     agentTools.skillManagerViewModel.loadSkills {

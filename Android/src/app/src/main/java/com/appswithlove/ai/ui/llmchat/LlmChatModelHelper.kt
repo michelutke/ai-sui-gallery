@@ -28,6 +28,7 @@ import com.appswithlove.ai.data.DEFAULT_TOPK
 import com.appswithlove.ai.data.DEFAULT_TOPP
 import com.appswithlove.ai.data.DEFAULT_VISION_ACCELERATOR
 import com.appswithlove.ai.data.Model
+import com.appswithlove.ai.data.ModelCapability
 import com.appswithlove.ai.runtime.CleanUpListener
 import com.appswithlove.ai.runtime.LlmModelHelper
 import com.appswithlove.ai.runtime.ResultListener
@@ -67,6 +68,7 @@ object LlmChatModelHelper : LlmModelHelper {
     tools: List<ToolProvider>,
     enableConversationConstrainedDecoding: Boolean,
     coroutineScope: CoroutineScope?,
+    taskId: String,
   ) {
     // Prepare options.
     val maxTokens =
@@ -88,6 +90,8 @@ object LlmChatModelHelper : LlmModelHelper {
         Accelerator.GPU.label -> Backend.GPU()
         Accelerator.NPU.label ->
           Backend.NPU(nativeLibraryDir = context.applicationInfo.nativeLibraryDir)
+        Accelerator.TPU.label ->
+          Backend.NPU(nativeLibraryDir = context.applicationInfo.nativeLibraryDir)
         else -> Backend.GPU()
       }
     val shouldEnableImage = supportImage
@@ -97,6 +101,8 @@ object LlmChatModelHelper : LlmModelHelper {
         Accelerator.CPU.label -> Backend.CPU()
         Accelerator.GPU.label -> Backend.GPU()
         Accelerator.NPU.label ->
+          Backend.NPU(nativeLibraryDir = context.applicationInfo.nativeLibraryDir)
+        Accelerator.TPU.label ->
           Backend.NPU(nativeLibraryDir = context.applicationInfo.nativeLibraryDir)
         else -> Backend.CPU()
       }
@@ -116,10 +122,35 @@ object LlmChatModelHelper : LlmModelHelper {
           else null,
       )
 
+    // Check if the model file supports speculative decoding.
+    var supportsSpeculativeDecoding = false
+    try {
+      com.google.ai.edge.litertlm.Capabilities(modelPath).use {
+        supportsSpeculativeDecoding = it.hasSpeculativeDecodingSupport()
+      }
+    } catch (e: Exception) {
+      // Ignore exceptions and assume not supported.
+    }
     // Create an instance of LiteRT LM engine and conversation.
     try {
+      var speculativeDecoding = false
+      // Enable speculative decoding only if the model file supports it, the model declares it for
+      // the given task type, and the user enabled it in the settings.
+      if (
+        supportsSpeculativeDecoding &&
+          model.capabilityToTaskTypes[ModelCapability.SPECULATIVE_DECODING]?.contains(taskId) == true
+      ) {
+        speculativeDecoding =
+          model.getBooleanConfigValue(
+            key = ConfigKeys.ENABLE_SPECULATIVE_DECODING,
+            defaultValue = false,
+          )
+      }
+      ExperimentalFlags.enableSpeculativeDecoding = speculativeDecoding
+      Log.d(TAG, "Speculative decoding enabled: $speculativeDecoding")
       val engine = Engine(engineConfig)
       engine.initialize()
+      ExperimentalFlags.enableSpeculativeDecoding = false
 
       ExperimentalFlags.enableConversationConstrainedDecoding =
         enableConversationConstrainedDecoding
@@ -157,6 +188,7 @@ object LlmChatModelHelper : LlmModelHelper {
     systemInstruction: Contents?,
     tools: List<ToolProvider>,
     enableConversationConstrainedDecoding: Boolean,
+    initialMessages: List<Message>,
   ) {
     try {
       Log.d(TAG, "Resetting conversation for model '${model.name}'")
@@ -195,6 +227,7 @@ object LlmChatModelHelper : LlmModelHelper {
               },
             systemInstruction = systemInstruction,
             tools = tools,
+            initialMessages = initialMessages,
           )
         )
       ExperimentalFlags.enableConversationConstrainedDecoding = false

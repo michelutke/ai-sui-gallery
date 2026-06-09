@@ -26,6 +26,7 @@ import com.appswithlove.ai.AppLifecycleProvider
 import com.appswithlove.ai.BuildConfig
 import com.appswithlove.ai.R
 import com.appswithlove.ai.common.ProjectConfig
+import com.appswithlove.ai.common.SystemPromptHelper
 import com.appswithlove.ai.common.getJsonResponse
 import com.appswithlove.ai.customtasks.common.CustomTask
 import com.appswithlove.ai.data.Accelerator
@@ -46,12 +47,15 @@ import com.appswithlove.ai.data.NumberSliderConfig
 import com.appswithlove.ai.data.RuntimeType
 import com.appswithlove.ai.data.SOC
 import com.appswithlove.ai.data.TMP_FILE_EXT
+import com.appswithlove.ai.data.SystemPromptRepository
 import com.appswithlove.ai.data.Task
 import com.appswithlove.ai.data.ValueType
 import com.appswithlove.ai.data.createLlmChatConfigs
 import com.appswithlove.ai.proto.AccessTokenData
 import com.appswithlove.ai.proto.ImportedModel
 import com.appswithlove.ai.proto.Theme
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -190,6 +194,7 @@ constructor(
   private val lifecycleProvider: AppLifecycleProvider,
   private val customTasks: Set<@JvmSuppressWildcards CustomTask>,
   private val loadedModelRegistry: com.appswithlove.ai.runtime.LoadedModelRegistry,
+  private val systemPromptRepository: SystemPromptRepository,
   @ApplicationContext private val context: Context,
 ) : ViewModel() {
   private val externalFilesDir = context.getExternalFilesDir(null)
@@ -400,11 +405,13 @@ constructor(
       }
 
       // Call the model initialization function.
+      val systemPrompt = SystemPromptHelper.getEffectiveSystemPrompt(systemPromptRepository, task)
       getCustomTaskByTaskId(id = task.id)
         ?.initializeModelFn(
           context = context,
           coroutineScope = viewModelScope,
           model = model,
+          systemInstruction = Contents.of(listOf(Content.Text(systemPrompt))),
           onDone = onDoneFn,
         )
     }

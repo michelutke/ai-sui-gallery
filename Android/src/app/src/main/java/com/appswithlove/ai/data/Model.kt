@@ -32,6 +32,11 @@ private val NORMALIZE_NAME_REGEX = Regex("[^a-zA-Z0-9]")
 
 data class PromptTemplate(val title: String, val description: String, val prompt: String)
 
+enum class ModelCapability {
+  @SerializedName("llm_thinking") LLM_THINKING,
+  @SerializedName("speculative_decoding") SPECULATIVE_DECODING,
+}
+
 enum class RuntimeType {
   @SerializedName("unknown") UNKNOWN,
   @SerializedName("litert_lm") LITERT_LM,
@@ -228,6 +233,9 @@ data class Model(
   /** Whether the LLM model supports thinking mode. */
   val llmSupportThinking: Boolean = false,
 
+  /** The capabilities of the model. */
+  val capabilities: List<ModelCapability> = listOf(),
+
   /** The max token for llm model. */
   val llmMaxToken: Int = 0,
 
@@ -251,6 +259,9 @@ data class Model(
   var prevConfigValues: Map<String, Any> = mapOf(),
   var totalBytes: Long = 0L,
   var accessToken: String? = null,
+
+  /** A map of model capability to the task type ids that the model capability is allowed for. */
+  val capabilityToTaskTypes: Map<ModelCapability, List<String>> = mapOf(),
 ) {
   init {
     normalizedName = NORMALIZE_NAME_REGEX.replace(name, "_")

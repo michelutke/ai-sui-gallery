@@ -20,6 +20,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.appswithlove.ai.data.Model
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.ToolProvider
 import kotlinx.coroutines.CoroutineScope
 
@@ -58,6 +59,7 @@ interface LlmModelHelper {
     tools: List<ToolProvider> = listOf(),
     enableConversationConstrainedDecoding: Boolean = false,
     coroutineScope: CoroutineScope? = null,
+    taskId: String = "",
   )
 
   /**
@@ -77,6 +79,7 @@ interface LlmModelHelper {
     systemInstruction: Contents? = null,
     tools: List<ToolProvider> = listOf(),
     enableConversationConstrainedDecoding: Boolean = false,
+    initialMessages: List<Message> = listOf(),
   )
 
   /**

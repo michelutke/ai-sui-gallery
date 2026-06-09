@@ -39,14 +39,17 @@ import com.appswithlove.ai.data.BuiltInTaskId
 import com.appswithlove.ai.data.Model
 import com.appswithlove.ai.data.RuntimeType
 import com.appswithlove.ai.data.Task
+import com.appswithlove.ai.ui.common.chat.ChatMessage
 import com.appswithlove.ai.ui.common.chat.ChatMessageAudioClip
 import com.appswithlove.ai.ui.common.chat.ChatMessageImage
 import com.appswithlove.ai.ui.common.chat.ChatMessageText
+import com.appswithlove.ai.ui.common.chat.ChatSide
 import com.appswithlove.ai.ui.common.chat.ChatView
 import com.appswithlove.ai.ui.common.chat.SendMessageTrigger
 import com.appswithlove.ai.ui.modelmanager.ModelManagerViewModel
 import com.appswithlove.ai.ui.theme.emptyStateContent
 import com.appswithlove.ai.ui.theme.emptyStateTitle
+import com.google.ai.edge.litertlm.Message
 
 private const val TAG = "AGLlmChatScreen"
 
@@ -59,7 +62,7 @@ fun LlmChatScreen(
   onFirstToken: (Model) -> Unit = {},
   onGenerateResponseDone: (Model) -> Unit = {},
   onSkillClicked: () -> Unit = {},
-  onResetSessionClickedOverride: ((Task, Model) -> Unit)? = null,
+  onResetSessionClickedOverride: ((Task, Model, List<ChatMessage>) -> Unit)? = null,
   composableBelowMessageList: @Composable (Model) -> Unit = {},
   viewModel: LlmChatViewModel = hiltViewModel(),
   allowEditingSystemPrompt: Boolean = false,
@@ -97,6 +100,9 @@ fun LlmAskImageScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmAskImageViewModel = hiltViewModel(),
+  allowEditingSystemPrompt: Boolean = false,
+  curSystemPrompt: String = "",
+  onSystemPromptChanged: (String) -> Unit = {},
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -104,6 +110,9 @@ fun LlmAskImageScreen(
     taskId = BuiltInTaskId.LLM_ASK_IMAGE,
     navigateUp = navigateUp,
     modifier = modifier,
+    allowEditingSystemPrompt = allowEditingSystemPrompt,
+    curSystemPrompt = curSystemPrompt,
+    onSystemPromptChanged = onSystemPromptChanged,
     showImagePicker = true,
     showAudioPicker = false,
     emptyStateComposable = { model ->
@@ -134,6 +143,9 @@ fun LlmAskAudioScreen(
   navigateUp: () -> Unit,
   modifier: Modifier = Modifier,
   viewModel: LlmAskAudioViewModel = hiltViewModel(),
+  allowEditingSystemPrompt: Boolean = false,
+  curSystemPrompt: String = "",
+  onSystemPromptChanged: (String) -> Unit = {},
 ) {
   ChatViewWrapper(
     viewModel = viewModel,
@@ -141,6 +153,9 @@ fun LlmAskAudioScreen(
     taskId = BuiltInTaskId.LLM_ASK_AUDIO,
     navigateUp = navigateUp,
     modifier = modifier,
+    allowEditingSystemPrompt = allowEditingSystemPrompt,
+    curSystemPrompt = curSystemPrompt,
+    onSystemPromptChanged = onSystemPromptChanged,
     showImagePicker = false,
     showAudioPicker = true,
     emptyStateComposable = {
@@ -174,7 +189,7 @@ fun ChatViewWrapper(
   onSkillClicked: () -> Unit = {},
   onFirstToken: (Model) -> Unit = {},
   onGenerateResponseDone: (Model) -> Unit = {},
-  onResetSessionClickedOverride: ((Task, Model) -> Unit)? = null,
+  onResetSessionClickedOverride: ((Task, Model, List<ChatMessage>) -> Unit)? = null,
   composableBelowMessageList: @Composable (Model) -> Unit = {},
   emptyStateComposable: @Composable (Model) -> Unit = {},
   allowEditingSystemPrompt: Boolean = false,
@@ -254,15 +269,19 @@ fun ChatViewWrapper(
       }
     },
     onBenchmarkClicked = { _, _, _, _ -> },
-    onResetSessionClicked = { model ->
+    onResetSessionClicked = { model, chatMessages, onDone ->
+      val litertMessages = chatMessages.mapNotNull { convertToLitertMessage(it) }
       if (onResetSessionClickedOverride != null) {
-        onResetSessionClickedOverride(task, model)
+        onResetSessionClickedOverride(task, model, chatMessages)
+        onDone()
       } else {
         viewModel.resetSession(
           task = task,
           model = model,
           supportImage = showImagePicker,
           supportAudio = showAudioPicker,
+          initialMessages = litertMessages,
+          onDone = onDone,
         )
       }
     },
@@ -280,4 +299,16 @@ fun ChatViewWrapper(
     sendMessageTrigger = sendMessageTrigger,
     showAudioPicker = showAudioPicker,
   )
+}
+
+private fun convertToLitertMessage(chatMessage: ChatMessage): Message? {
+  if (chatMessage is ChatMessageText) {
+    return when (chatMessage.side) {
+      ChatSide.USER -> Message.user(chatMessage.content)
+      ChatSide.AGENT -> Message.model(chatMessage.content)
+      // System messages are not preloaded into the conversation.
+      ChatSide.SYSTEM -> null
+    }
+  }
+  return null
 }

@@ -65,7 +65,9 @@ class MainActivity : ComponentActivity() {
   private var contentSet: Boolean = false
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
+    // Intentionally pass null to discard the saved instance state bundle. This prevents Compose
+    // from auto-restoring the previous screen and forces a clean start on Home after an OS kill.
+    super.onCreate(null)
     consumeDeepLink(intent)
 
     fun setContent() {

@@ -353,5 +353,15 @@
   <string name="insurance_llm_inference_failed">Échec de l\'inférence du LLM : %s</string>
   <string name="insurance_capture_failed">Échec de la prise de photo : %s</string>
   <string name="insurance_capture_processing_failed">Échec du traitement de la prise : %s</string>
+  <string name="snackbar_save_to_album_success">Enregistré dans l\'album photo</string>
+  <string name="snackbar_save_to_album_failed">Échec de l\'enregistrement dans l\'album photo</string>
+  <string name="snackbar_copy_to_clipboard_success">Copié dans le presse-papiers</string>
+  <string name="cd_chat_history">Historique des conversations</string>
+  <string name="chat_history_title">Historique des conversations</string>
+  <string name="new_chat">Nouvelle conversation</string>
+  <string name="clear_all">Tout effacer</string>
+  <string name="chat_history_demo_notice">L\'historique des conversations est stocké uniquement sur cet appareil.</string>
+  <string name="clear_history_dialog_title">Effacer l\'historique ?</string>
+  <string name="clear_history_dialog_content">Voulez-vous vraiment effacer l\'historique ? Cette action est irréversible.</string>
 
 </resources>
