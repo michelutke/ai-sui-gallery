@@ -83,6 +83,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -95,12 +96,17 @@ import com.appswithlove.ai.R
 import com.appswithlove.ai.data.BooleanSwitchConfig
 import com.appswithlove.ai.data.BottomSheetSelectorConfig
 import com.appswithlove.ai.data.BottomSheetSelectorItem
+import com.appswithlove.ai.data.BuiltInTaskId
 import com.appswithlove.ai.data.Config
 import com.appswithlove.ai.data.ConfigKeys
 import com.appswithlove.ai.data.LabelConfig
+import com.appswithlove.ai.data.Model
 import com.appswithlove.ai.data.NumberSliderConfig
 import com.appswithlove.ai.data.SegmentedButtonConfig
+import com.appswithlove.ai.data.Task
 import com.appswithlove.ai.data.ValueType
+import com.appswithlove.ai.data.convertValueToTargetType
+import com.appswithlove.ai.ui.modelmanager.ModelManagerViewModel
 import com.appswithlove.ai.ui.theme.labelSmallNarrow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -213,6 +219,14 @@ fun ConfigDialog(
             modifier = Modifier.weight(1f, fill = false),
             textStyle = MaterialTheme.typography.bodySmall,
             onValueChange = { systemPrompt = it },
+            placeholder = {
+              Text(
+                text = stringResource(R.string.system_prompt_placeholder),
+                modifier = Modifier.offset(y = (4).dp), // Adjust to align the cursor with the text.
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+              )
+            },
           )
         }
 
@@ -635,4 +649,102 @@ fun BottomSheetSelectorRow(
       }
     }
   }
+}
+
+/**
+ * Reusable model configuration dialog with the task-aware config filtering and re-initialization
+ * logic. Extracted so it can be triggered from both the app bar and the in-chat toolbar.
+ */
+@Composable
+fun ModelConfigDialog(
+  model: Model,
+  task: Task,
+  modelManagerViewModel: ModelManagerViewModel,
+  onDismissed: () -> Unit,
+  onConfigChanged: (oldConfigValues: Map<String, Any>, newConfigValues: Map<String, Any>) -> Unit =
+    { _, _ ->
+    },
+  allowEditingSystemPrompt: Boolean = false,
+  curSystemPrompt: String = "",
+  onSystemPromptChanged: (String) -> Unit = {},
+) {
+  val context = LocalContext.current
+  // Remove the reset conversation turn count config for non-tiny-garden tasks, and the thinking
+  // toggle for tasks that don't allow thinking.
+  val modelConfigs = model.configs.toMutableList()
+  if (task.id != BuiltInTaskId.LLM_TINY_GARDEN) {
+    modelConfigs.removeIf { it.key == ConfigKeys.RESET_CONVERSATION_TURN_COUNT }
+  }
+  if (!task.allowThinking()) {
+    modelConfigs.removeIf { it.key == ConfigKeys.ENABLE_THINKING }
+  }
+  ConfigDialog(
+    title = "Configurations",
+    configs = modelConfigs,
+    initialValues = model.configValues,
+    onDismissed = onDismissed,
+    onOk = { curConfigValues, oldSystemPrompt, newSystemPrompt ->
+      onDismissed()
+
+      // Check if the configs are changed or not. Also check if the model needs to be
+      // re-initialized.
+      var same = true
+      var needReinitialization = false
+      for (config in modelConfigs) {
+        val key = config.key.label
+        val oldValue =
+          convertValueToTargetType(
+            value = model.configValues.getValue(key),
+            valueType = config.valueType,
+          )
+        val newValue =
+          convertValueToTargetType(
+            value = curConfigValues.getValue(key),
+            valueType = config.valueType,
+          )
+        if (oldValue != newValue) {
+          same = false
+          if (config.needReinitialization) {
+            needReinitialization = true
+          }
+          break
+        }
+      }
+      if (same) {
+        if (newSystemPrompt != oldSystemPrompt) {
+          onSystemPromptChanged(newSystemPrompt)
+        }
+        return@ConfigDialog
+      }
+
+      // Save the config values to Model.
+      val oldConfigValues = model.configValues
+      model.prevConfigValues = oldConfigValues
+      model.configValues = curConfigValues
+      modelManagerViewModel.updateConfigValuesUpdateTrigger()
+
+      if (!task.handleModelConfigChangesInTask) {
+        // Force to re-initialize the model with the new configs.
+        if (needReinitialization) {
+          modelManagerViewModel.initializeModel(
+            context = context,
+            task = task,
+            model = model,
+            force = true,
+            onDone = {
+              if (oldSystemPrompt != newSystemPrompt) {
+                onSystemPromptChanged(newSystemPrompt)
+              }
+            },
+          )
+        }
+
+        // Notify.
+        onConfigChanged(oldConfigValues, model.configValues)
+      }
+    },
+    showSystemPromptEditorTab = allowEditingSystemPrompt,
+    defaultSystemPrompt = task.defaultSystemPrompt,
+    curSystemPrompt = curSystemPrompt,
+  )
 }

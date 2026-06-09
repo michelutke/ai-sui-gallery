@@ -353,5 +353,15 @@
   <string name="insurance_llm_inference_failed">LLM-Verarbeitung fehlgeschlagen: %s</string>
   <string name="insurance_capture_failed">Foto konnte nicht aufgenommen werden: %s</string>
   <string name="insurance_capture_processing_failed">Verarbeitung der Aufnahme fehlgeschlagen: %s</string>
+  <string name="snackbar_save_to_album_success">In Fotoalbum gespeichert</string>
+  <string name="snackbar_save_to_album_failed">Speichern im Fotoalbum fehlgeschlagen</string>
+  <string name="snackbar_copy_to_clipboard_success">In Zwischenablage kopiert</string>
+  <string name="cd_chat_history">Chatverlauf</string>
+  <string name="chat_history_title">Chatverlauf</string>
+  <string name="new_chat">Neuer Chat</string>
+  <string name="clear_all">Alle löschen</string>
+  <string name="chat_history_demo_notice">Der Chatverlauf wird nur auf diesem Gerät gespeichert.</string>
+  <string name="clear_history_dialog_title">Verlauf löschen?</string>
+  <string name="clear_history_dialog_content">Möchtest du den Verlauf wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.</string>
 
 </resources>

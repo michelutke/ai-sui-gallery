@@ -56,12 +56,14 @@ data class AllowedModel(
   val llmSupportAudio: Boolean? = null,
   val llmSupportTinyGarden: Boolean? = null,
   val llmSupportThinking: Boolean? = null,
+  val capabilities: List<ModelCapability>? = null,
   val minDeviceMemoryInGb: Int? = null,
   val bestForTaskTypes: List<String>? = null,
   val localModelFilePathOverride: String? = null,
   val url: String? = null,
   val socToModelFiles: Map<String, SocModelFile>? = null,
   val runtimeType: RuntimeType? = null,
+  val capabilityToTaskTypes: Map<ModelCapability, List<String>>? = null,
 ) {
   fun toModel(): Model {
     // Construct HF download url.
@@ -147,7 +149,11 @@ data class AllowedModel(
               defaultMaxToken = llmMaxToken,
               defaultMaxContextLength = llmMaxContextLength,
               accelerators = accelerators,
-              supportThinking = llmSupportThinking == true,
+              supportThinking =
+                llmSupportThinking == true ||
+                  capabilities?.contains(ModelCapability.LLM_THINKING) == true,
+              supportSpeculativeDecoding =
+                capabilities?.contains(ModelCapability.SPECULATIVE_DECODING) == true,
             )
           })
           .toMutableList()
@@ -177,7 +183,9 @@ data class AllowedModel(
       llmSupportImage = llmSupportImage == true,
       llmSupportAudio = llmSupportAudio == true,
       llmSupportTinyGarden = llmSupportTinyGarden == true,
-      llmSupportThinking = llmSupportThinking == true,
+      llmSupportThinking =
+        llmSupportThinking == true || capabilities?.contains(ModelCapability.LLM_THINKING) == true,
+      capabilities = capabilities ?: emptyList(),
       llmMaxToken = llmMaxToken,
       accelerators = accelerators,
       visionAccelerator = visionAccelerator,
@@ -185,6 +193,7 @@ data class AllowedModel(
       localModelFilePathOverride = localModelFilePathOverride ?: "",
       isLlm = isLlmModel,
       runtimeType = runtimeType ?: RuntimeType.LITERT_LM,
+      capabilityToTaskTypes = capabilityToTaskTypes ?: emptyMap(),
     )
   }
 

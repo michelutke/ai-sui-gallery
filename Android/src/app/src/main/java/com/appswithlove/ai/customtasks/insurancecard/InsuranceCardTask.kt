@@ -59,6 +59,7 @@ class InsuranceCardTask @Inject constructor() : CustomTask {
     context: Context,
     coroutineScope: CoroutineScope,
     model: Model,
+    @Suppress("UNUSED_PARAMETER") systemInstruction: Contents?,
     onDone: (String) -> Unit,
   ) {
     if (model.name == OCR_REGEX_MODEL.name) {

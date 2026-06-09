@@ -26,6 +26,7 @@ import com.appswithlove.ai.data.CategoryInfo
 import com.appswithlove.ai.data.Model
 import com.appswithlove.ai.data.Task
 import com.appswithlove.ai.ui.modelmanager.ModelManagerViewModel
+import com.google.ai.edge.litertlm.Contents
 import java.io.File
 import javax.inject.Inject
 import kotlin.math.min
@@ -100,6 +101,7 @@ class ExampleCustomTask @Inject constructor() : CustomTask {
     context: Context,
     coroutineScope: CoroutineScope,
     model: Model,
+    @Suppress("UNUSED_PARAMETER") systemInstruction: Contents?,
     onDone: (String) -> Unit,
   ) {
     coroutineScope.launch(Dispatchers.IO) {

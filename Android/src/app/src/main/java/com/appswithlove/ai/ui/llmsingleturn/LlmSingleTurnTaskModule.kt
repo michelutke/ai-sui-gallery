@@ -28,6 +28,7 @@ import com.appswithlove.ai.data.Category
 import com.appswithlove.ai.data.Model
 import com.appswithlove.ai.data.Task
 import com.appswithlove.ai.ui.llmchat.LlmChatModelHelper
+import com.google.ai.edge.litertlm.Contents
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -56,6 +57,7 @@ class LlmSingleTurnTask @Inject constructor() : CustomTask {
     context: Context,
     coroutineScope: CoroutineScope,
     model: Model,
+    systemInstruction: Contents?,
     onDone: (String) -> Unit,
   ) {
     LlmChatModelHelper.initialize(
@@ -64,6 +66,7 @@ class LlmSingleTurnTask @Inject constructor() : CustomTask {
       supportImage = false,
       supportAudio = false,
       onDone = onDone,
+      systemInstruction = systemInstruction,
     )
   }
 

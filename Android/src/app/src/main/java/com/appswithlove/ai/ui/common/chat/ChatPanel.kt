@@ -16,6 +16,9 @@
 
 package com.appswithlove.ai.ui.common.chat
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -39,6 +42,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,8 +52,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -73,6 +80,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -121,6 +129,11 @@ fun ChatPanel(
   showImagePicker: Boolean = false,
   showAudioPicker: Boolean = false,
   emptyStateComposable: @Composable (Model) -> Unit = {},
+  showInputToolbar: Boolean = false,
+  showConfigInToolbar: Boolean = false,
+  onConfigClicked: () -> Unit = {},
+  onHistoryClicked: () -> Unit = {},
+  onNewChatClicked: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val modelManagerUiState by modelManagerViewModel.uiState.collectAsState()
@@ -129,6 +142,13 @@ fun ChatPanel(
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
   val haptic = LocalHapticFeedback.current
+  val context = LocalContext.current
+  val clipboard =
+    remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
+  val copyToClipboard: (String) -> Unit =
+    remember(clipboard) {
+      { text -> clipboard.setPrimaryClip(ClipData.newPlainText("message", text)) }
+    }
   val imageCountToLastConfigChange =
     remember(messages) {
       var imageCount = 0
@@ -388,7 +408,11 @@ fun ChatPanel(
                     when (message) {
                       // Text
                       is ChatMessageText ->
-                        MessageBodyText(message = message, inProgress = uiState.inProgress)
+                        MessageBodyText(
+                          message = message,
+                          inProgress = uiState.inProgress,
+                          onCopyClicked = copyToClipboard,
+                        )
 
                       // Image
                       is ChatMessageImage -> {
@@ -435,6 +459,7 @@ fun ChatPanel(
                         MessageBodyThinking(
                           thinkingText = message.content,
                           inProgress = message.inProgress,
+                          onCopyClicked = copyToClipboard,
                         )
 
                       else -> {}
@@ -447,6 +472,19 @@ fun ChatPanel(
                       horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                       LatencyText(message = message)
+                      if (message is ChatMessageText && !uiState.inProgress) {
+                        IconButton(
+                          onClick = { copyToClipboard(message.content) },
+                          modifier = Modifier.size(28.dp),
+                        ) {
+                          Icon(
+                            imageVector = Icons.Rounded.ContentCopy,
+                            contentDescription = stringResource(R.string.copy),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(18.dp),
+                          )
+                        }
+                      }
                     }
                   } else if (message.side == ChatSide.USER) {
                     Row(
@@ -527,6 +565,17 @@ fun ChatPanel(
             }
           }
         }
+      }
+
+      if (showInputToolbar) {
+        ChatInputToolbar(
+          onConfigClicked = onConfigClicked,
+          onHistoryClicked = onHistoryClicked,
+          onNewChatClicked = onNewChatClicked,
+          showConfig = showConfigInToolbar,
+          modifier =
+            Modifier.align(Alignment.End).padding(horizontal = 12.dp, vertical = 4.dp),
+        )
       }
 
       MessageInputText(

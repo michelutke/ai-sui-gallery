@@ -37,16 +37,22 @@ import com.appswithlove.ai.ui.common.MarkdownText
 
 /** Composable function to display the text content of a ChatMessageText. */
 @Composable
-fun MessageBodyText(message: ChatMessageText, inProgress: Boolean) {
-  SelectionContainer {
-    if (message.side == ChatSide.USER) {
+fun MessageBodyText(
+  message: ChatMessageText,
+  inProgress: Boolean,
+  onCopyClicked: (String) -> Unit = {},
+) {
+  if (message.side == ChatSide.USER) {
+    LongPressCopyContainer(copyText = message.content, onCopyClicked = onCopyClicked) {
       MarkdownText(
         text = message.content,
         modifier = Modifier.padding(12.dp),
         textColor = Color.White,
         linkColor = Color.White,
       )
-    } else if (message.side == ChatSide.AGENT) {
+    }
+  } else if (message.side == ChatSide.AGENT) {
+    SelectionContainer {
       val cdResponse = stringResource(R.string.cd_model_response_text)
       if (message.isMarkdown) {
         MarkdownText(

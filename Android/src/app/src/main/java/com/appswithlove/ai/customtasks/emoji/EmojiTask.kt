@@ -34,6 +34,7 @@ class EmojiTask @Inject constructor() : CustomTask {
     context: Context,
     coroutineScope: CoroutineScope,
     model: Model,
+    @Suppress("UNUSED_PARAMETER") systemInstruction: Contents?,
     onDone: (String) -> Unit,
   ) {
     LlmChatModelHelper.initialize(

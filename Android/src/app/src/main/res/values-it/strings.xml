@@ -353,5 +353,15 @@
   <string name="insurance_llm_inference_failed">Inferenza del LLM non riuscita: %s</string>
   <string name="insurance_capture_failed">Acquisizione foto non riuscita: %s</string>
   <string name="insurance_capture_processing_failed">Elaborazione dell\'acquisizione non riuscita: %s</string>
+  <string name="snackbar_save_to_album_success">Salvato nell\'album fotografico</string>
+  <string name="snackbar_save_to_album_failed">Salvataggio nell\'album fotografico non riuscito</string>
+  <string name="snackbar_copy_to_clipboard_success">Copiato negli appunti</string>
+  <string name="cd_chat_history">Cronologia chat</string>
+  <string name="chat_history_title">Cronologia chat</string>
+  <string name="new_chat">Nuova chat</string>
+  <string name="clear_all">Cancella tutto</string>
+  <string name="chat_history_demo_notice">La cronologia chat è memorizzata solo su questo dispositivo.</string>
+  <string name="clear_history_dialog_title">Cancellare la cronologia?</string>
+  <string name="clear_history_dialog_content">Vuoi davvero cancellare la cronologia? Questa azione non può essere annullata.</string>
 
 </resources>

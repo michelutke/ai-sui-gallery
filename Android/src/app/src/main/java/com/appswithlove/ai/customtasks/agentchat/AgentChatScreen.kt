@@ -184,7 +184,7 @@ fun AgentChatScreen(
 
       updateProgressPanel(viewModel = viewModel, model = model, agentTools = agentTools)
     },
-    onResetSessionClickedOverride = { task, model ->
+    onResetSessionClickedOverride = { task, model, _ ->
       resetSessionWithCurrentSkills(
         viewModel,
         modelManagerViewModel,

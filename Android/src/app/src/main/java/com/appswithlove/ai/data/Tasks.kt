@@ -133,6 +133,10 @@ data class Task(
       id == BuiltInTaskId.LLM_ASK_IMAGE ||
       id == BuiltInTaskId.LLM_ASK_AUDIO
   }
+
+  fun allowCapability(capability: ModelCapability, model: Model): Boolean {
+    return model.capabilityToTaskTypes[capability]?.contains(id) == true
+  }
 }
 
 object BuiltInTaskId {
